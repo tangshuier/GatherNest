@@ -29,9 +29,16 @@ except Exception as e:
 # 启动Flask服务器
 print("启动Flask服务器...")
 try:
+    # 获取脚本所在目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 获取项目根目录（脚本所在目录的父目录）
+    project_root = os.path.dirname(script_dir)
+    # 使用项目根目录下的app.py
+    app_path = os.path.join(project_root, 'app.py')
+    
     # 使用subprocess在后台启动服务器
     server_process = subprocess.Popen(
-        ['python', 'app.py'],
+        ['python', app_path],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,

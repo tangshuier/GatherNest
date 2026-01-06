@@ -11,8 +11,12 @@ import os
 # 只检查基本语法，不尝试渲染
 print("开始检查模板语法...")
 try:
-    # 初始化Jinja2环境
-    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    # 获取脚本所在目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 获取项目根目录（脚本所在目录的父目录）
+    project_root = os.path.dirname(script_dir)
+    # 初始化Jinja2环境，使用项目根目录下的templates文件夹
+    template_dir = os.path.join(project_root, 'templates')
     env = Environment(loader=FileSystemLoader(template_dir))
     
     # 读取模板文件内容
