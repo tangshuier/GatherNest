@@ -1,0 +1,869 @@
+{% extends "base.html" %}
+
+{% block title %}{{ file_path.split('/')[-1].split('\\')[-1] }} - 文件查看器{% endblock %}
+
+{% block content %}
+<div class="file-viewer-container">
+    <!-- 文件信息头部 -->
+    <div class="file-info-card shadow-sm fade-in">
+        <div class="file-info-header card-header-gradient">
+            <div class="file-header-content">
+                <div class="file-title-section">
+                    <div class="file-icon">
+                        <i class="fas fa-file-code"></i>
+                    </div>
+                    <h5 class="file-name">{{ file_path.split('/')[-1].split('\\')[-1] }}</h5>
+                    <span class="file-extension">{{ file_ext|upper }}</span>
+                </div>
+                <div class="file-actions">
+                    <button id="copy-btn" class="btn-action secondary">
+                        <i class="fas fa-copy"></i> 复制代码
+                    </button>
+                    <a href="{{ url_for('document_viewer.download_archive_file_route', document_id=document.id, file_path=file_path) }}" 
+                       class="btn-action secondary">
+                        <i class="fas fa-download"></i> 下载文件
+                    </a>
+                    <a href="{{ url_for('document_viewer.view_document', document_id=document.id) }}" 
+                       class="btn-action primary">
+                        <i class="fas fa-arrow-left"></i> 返回
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="file-info-body">
+            <div class="file-info-grid">
+                <div class="file-info-item">
+                    <div class="file-info-label">所属文档</div>
+                    <div class="file-info-value truncate">{{ document.filename }}</div>
+                </div>
+                <div class="file-info-item">
+                    <div class="file-info-label">文件路径</div>
+                    <div class="file-info-value truncate">{{ file_path }}</div>
+                </div>
+                <div class="file-info-item">
+                    <div class="file-info-label">文件类型</div>
+                    <div class="file-info-value">{{ file_ext|upper }}</div>
+                </div>
+                <div class="file-info-item">
+                    <div class="file-info-label">版本</div>
+                    <div class="file-info-value">{{ document.version }}</div>
+                </div>
+                <div class="file-info-item">
+                    <div class="file-info-label">大小</div>
+                    <div class="file-info-value">{% if content_size is defined %}{% if content_size is number and content_size >= 0 %}{{ "%.2f"|format(content_size/1024) }} KB{% else %}0.00 KB{% endif %}{% else %}未知{% endif %}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件内容区域 -->
+    <div class="code-view-card shadow-sm fade-in" style="animation-delay: 0.1s;">
+        <div class="code-header">
+            <div class="code-header-content">
+                <h6 class="code-title">文件内容</h6>
+                <div class="code-options">
+                    <div class="word-wrap-option">
+                        <input type="checkbox" class="toggle-checkbox" id="word-wrap" checked>
+                        <label class="toggle-label" for="word-wrap">自动换行</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="code-content-wrapper">
+            <div class="code-editor">
+                <pre class="code-pre"><code id="file-content" class="language-{{ file_ext }}">{{ content|safe }}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileExt = '{{ file_ext }}';
+        const codeElement = document.getElementById('file-content');
+        const preElement = codeElement.parentElement;
+        const codeContainer = preElement.parentElement;
+        
+        // 代码复制功能增强
+        const copyBtn = document.getElementById('copy-btn');
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(codeElement.textContent).then(function() {
+                // 复制成功动画效果
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                copyBtn.classList.remove('secondary');
+                copyBtn.classList.add('success');
+                
+                // 添加轻微缩放动画
+                copyBtn.classList.add('btn-success-animation');
+                
+                setTimeout(function() {
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> 复制代码';
+                    copyBtn.classList.remove('success');
+                    copyBtn.classList.add('secondary');
+                    copyBtn.classList.remove('btn-success-animation');
+                }, 2000);
+            }).catch(function(err) {
+                console.error('无法复制代码: ', err);
+                copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 复制失败';
+                copyBtn.classList.remove('secondary');
+                copyBtn.classList.add('error');
+                
+                setTimeout(function() {
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> 复制代码';
+                    copyBtn.classList.remove('error');
+                    copyBtn.classList.add('secondary');
+                }, 2000);
+            });
+        });
+        
+        // 自动换行功能增强
+        const wordWrapCheckbox = document.getElementById('word-wrap');
+        wordWrapCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                codeElement.style.whiteSpace = 'pre-wrap';
+                codeElement.style.wordBreak = 'break-all';
+                // 添加切换动画
+                codeElement.classList.add('word-wrap-transition');
+                setTimeout(() => {
+                    codeElement.classList.remove('word-wrap-transition');
+                }, 300);
+            } else {
+                codeElement.style.whiteSpace = 'pre';
+                codeElement.style.wordBreak = 'normal';
+                // 添加切换动画
+                codeElement.classList.add('word-wrap-transition');
+                setTimeout(() => {
+                    codeElement.classList.remove('word-wrap-transition');
+                }, 300);
+            }
+        });
+        
+        // 高级代码高亮增强
+        function applySyntaxHighlight() {
+            let content = codeElement.textContent;
+            
+            // 转义HTML实体
+            content = content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            // 通用高亮规则 - 使用更现代的配色方案
+            // 注释
+            content = content.replace(/(\/\/.*?$|\/\*[\s\S]*?\*\/|#.*?$)/gm, 
+                                     '<span class="syntax-comment">$1</span>');
+            // 数字
+            content = content.replace(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)/g, 
+                                     '<span class="syntax-number">$1</span>');
+            // 布尔值
+            content = content.replace(/\b(true|false|null|undefined)\b/gi, 
+                                     '<span class="syntax-boolean">$1</span>');
+            
+            // 特定语言高亮 - 增强高亮规则
+            if (['py', 'python'].includes(fileExt)) {
+                // Python关键字
+                const pyKeywords = 'False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield';
+                const pyKeywordRegex = new RegExp(`\\b(${pyKeywords.split(' ').join('|')})\\b`, 'g');
+                content = content.replace(pyKeywordRegex, '<span class="syntax-keyword">$1</span>');
+                
+                // Python字符串 - 增强多行字符串和转义字符高亮
+                content = content.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, 
+                                         '<span class="syntax-string">$1</span>');
+                
+                // Python函数名
+                content = content.replace(/\bdef\s+(\w+)\s*\(/g, 
+                                         '<span class="syntax-keyword">def</span> <span class="syntax-function">$1</span>(');
+                                         
+                // Python类名
+                content = content.replace(/\bclass\s+(\w+)/g, 
+                                         '<span class="syntax-keyword">class</span> <span class="syntax-class">$1</span>');
+                                         
+                // Python装饰器
+                content = content.replace(/@(\w+)/g, '<span class="syntax-decorator">@$1</span>');
+            }
+            else if (['c', 'cpp', 'h', 'hpp'].includes(fileExt)) {
+                // C/C++关键字
+                const cppKeywords = 'auto break case char const continue default do double else enum extern float for goto if inline int long namespace new nullptr operator private protected public register return short signed sizeof static struct switch template this throw try typedef union unsigned using virtual void volatile while';
+                const cppKeywordRegex = new RegExp(`\\b(${cppKeywords.split(' ').join('|')})\\b`, 'g');
+                content = content.replace(cppKeywordRegex, '<span class="syntax-keyword">$1</span>');
+                
+                // C/C++字符串和字符
+                content = content.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, 
+                                         '<span class="syntax-string">$1</span>');
+                                         
+                // C/C++预处理指令
+                content = content.replace(/^\s*#\s*(include|define|if|ifdef|ifndef|else|elif|endif|pragma)/gm, 
+                                         '<span class="syntax-preprocessor"># $1</span>');
+                                         
+                // C/C++类型
+                const cppTypes = 'bool char wchar_t char16_t char32_t short int long float double void';
+                const cppTypeRegex = new RegExp(`\\b(${cppTypes.split(' ').join('|')})\\b`, 'g');
+                content = content.replace(cppTypeRegex, '<span class="syntax-type">$1</span>');
+            }
+            else if (['js', 'javascript', 'ts', 'typescript'].includes(fileExt)) {
+                // JavaScript/TypeScript关键字
+                const jsKeywords = 'break case catch class const continue debugger default delete do else enum export extends finally for function if implements import in instanceof interface let new package private protected public return super switch static this throw try typeof var void while with yield';
+                const jsKeywordRegex = new RegExp(`\\b(${jsKeywords.split(' ').join('|')})\\b`, 'g');
+                content = content.replace(jsKeywordRegex, '<span class="syntax-keyword">$1</span>');
+                
+                // JavaScript字符串
+                content = content.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, 
+                                         '<span class="syntax-string">$1</span>');
+                
+                // JavaScript函数
+                content = content.replace(/function\s+(\w+)/g, 
+                                         '<span class="syntax-keyword">function</span> <span class="syntax-function">$1</span>');
+                // 避免使用箭头函数语法，只处理普通函数定义的高亮
+                                         
+                // TypeScript类型
+                if (['ts', 'typescript'].includes(fileExt)) {
+                    const tsTypes = 'string number boolean any void never undefined null object Array Tuple';
+                    const tsTypeRegex = new RegExp(`\\b(${tsTypes.split(' ').join('|')})\\b`, 'g');
+                    content = content.replace(tsTypeRegex, '<span class="syntax-type">$1</span>');
+                }
+            }
+            else if (['html', 'htm', 'xhtml', 'xml'].includes(fileExt)) {
+                // HTML标签
+                content = content.replace(/(&lt;\/?[a-z][a-z0-9\-]*\s*[^&gt;]*&gt;)/gi, 
+                                         '<span class="syntax-tag">$1</span>');
+                
+                // HTML属性
+                content = content.replace(/(&lt;[^&gt;]*?)\b([a-z-]+)=/gi, 
+                                         '$1<span class="syntax-attribute">$2</span>=');
+                
+                // HTML属性值
+                content = content.replace(/=(&quot;[^&quot;]*&quot;|'[^']*'|[^\s&gt;]+)/g, 
+                                         '=<span class="syntax-string">$1</span>');
+                                         
+                // HTML注释
+                content = content.replace(/(&lt;!--[\s\S]*?--&gt;)/g, 
+                                         '<span class="syntax-comment">$1</span>');
+            }
+            else if (['css', 'scss', 'sass', 'less'].includes(fileExt)) {
+                // CSS选择器
+                content = content.replace(/([.#]?[a-zA-Z0-9_-]+(?:\s*[,>+~]\s*[.#]?[a-zA-Z0-9_-]+)*)\s*{/g, 
+                                         '<span class="syntax-selector">$1</span> {');
+                
+                // CSS属性
+                content = content.replace(/\s([a-z-]+):/g, 
+                                         ' <span class="syntax-property">$1</span>:');
+                                         
+                // CSS值
+                content = content.replace(/:\s*([^;}]+)/g, 
+                                         ': <span class="syntax-value">$1</span>');
+                                         
+                // CSS变量
+                content = content.replace(/(--[a-z-]+)/g, 
+                                         '<span class="syntax-variable">$1</span>');
+            }
+            else if (['json', 'yml', 'yaml'].includes(fileExt)) {
+                // JSON/YAML键
+                content = content.replace(/"([^"\\]|\\.)*"\s*:/g, 
+                                         '<span class="syntax-key">"$1"</span>:');
+                                         
+                // JSON/YAML值
+                content = content.replace(/:\s*("([^"\\]|\\.)*"|\d+(?:\.\d+)?|true|false|null)/g, 
+                                         ': <span class="syntax-value">$1</span>');
+            }
+            
+            codeElement.innerHTML = content;
+        }
+        
+        // 增强的行号显示功能
+        function addLineNumbers() {
+            const content = codeElement.textContent;
+            const lines = content.split('\n');
+            
+            // 创建行号容器
+            const lineNumbersDiv = document.createElement('div');
+            lineNumbersDiv.className = 'line-numbers';
+            lineNumbersDiv.setAttribute('aria-hidden', 'true');
+            
+            // 创建行号 - 支持更多行号样式
+            let lineNumbersHTML = '';
+            for (let i = 1; i <= lines.length; i++) {
+                // 每10行添加一个高亮行号，便于计数
+                const isHighlight = i % 10 === 0;
+                lineNumbersHTML += `<div class="line-number ${isHighlight ? 'line-number-highlight' : ''}" data-line="${i}">${i}</div>`;
+            }
+            lineNumbersDiv.innerHTML = lineNumbersHTML;
+            
+            // 插入行号容器
+            preElement.style.position = 'relative';
+            preElement.insertBefore(lineNumbersDiv, codeElement);
+            
+            // 设置代码区域内边距，为行号留出空间
+            codeElement.style.paddingLeft = '1.25rem';
+        }
+        
+        // 初始化 - 添加平滑的加载动画
+        setTimeout(() => {
+            applySyntaxHighlight();
+            addLineNumbers();
+            
+            // 添加代码加载完成的动画效果
+            codeElement.classList.add('code-loaded');
+        }, 100);
+        
+        // 同步滚动增强 - 更流畅的滚动体验
+        codeElement.addEventListener('scroll', function() {
+            const lineNumbersDiv = preElement.querySelector('.line-numbers');
+            // 使用requestAnimationFrame确保平滑滚动
+            requestAnimationFrame(() => {
+                lineNumbersDiv.scrollTop = this.scrollTop;
+            });
+        });
+        
+        // 添加代码区域鼠标滚轮平滑滚动
+        codeContainer.addEventListener('wheel', function(e) {
+            // 水平滚动时平滑处理
+            if (e.deltaX !== 0) {
+                e.preventDefault();
+                this.scrollLeft += e.deltaX * 2;
+            }
+        }, { passive: false });
+    });
+</script>
+
+<style>
+    /* 文件查看器全局样式 */
+    :root {
+        --code-bg: #ffffff;
+        --code-text: #333333;
+        --line-number-bg: #f8f9fa;
+        --line-number-color: #8e9093;
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .file-viewer-container {
+        max-width: 100%;
+        margin: 1.5rem auto;
+        padding: 0 1rem;
+    }
+    
+    /* 文件信息卡片样式 */
+    .file-info-card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .file-info-card:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .card-header-gradient {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .file-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .file-title-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .file-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.2);
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    .file-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        color: white;
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .file-extension {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .file-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    /* 按钮样式增强 */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        backdrop-filter: blur(4px);
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-action:active {
+        transform: translateY(0);
+    }
+    
+    .btn-action.primary {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-action.primary:hover {
+        background-color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .btn-action.success {
+        background-color: #10b981 !important;
+    }
+    
+    .btn-action.error {
+        background-color: #ef4444 !important;
+    }
+    
+    .btn-success-animation {
+        animation: successPulse 0.3s ease;
+    }
+    
+    @keyframes successPulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    /* 文件信息体样式 */
+    .file-info-body {
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .file-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .file-info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .file-info-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    
+    .file-info-value {
+        font-size: 0.95rem;
+        color: var(--text-color);
+        font-weight: 500;
+        word-break: break-all;
+    }
+    
+    .truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* 代码查看卡片样式 */
+    .code-view-card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .code-view-card:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .code-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem 1.5rem;
+    }
+    
+    .code-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .code-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text-color);
+    }
+    
+    /* 自动换行选项样式 */
+    .word-wrap-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    /* 自定义开关样式 */
+    .toggle-checkbox {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        appearance: none;
+        background-color: #ccc;
+        border-radius: 10px;
+        outline: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    
+    .toggle-checkbox:checked {
+        background-color: var(--primary-color);
+    }
+    
+    .toggle-checkbox::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        background-color: white;
+        border-radius: 50%;
+        transition: transform 0.3s ease;
+    }
+    
+    .toggle-checkbox:checked::before {
+        transform: translateX(16px);
+    }
+    
+    .toggle-label {
+        cursor: pointer;
+        user-select: none;
+        font-weight: 500;
+    }
+    
+    /* 代码内容样式 */
+    .code-content-wrapper {
+        position: relative;
+        max-height: 70vh;
+        overflow: hidden;
+    }
+    
+    .code-editor {
+        position: relative;
+        height: 70vh;
+        overflow: auto;
+        background-color: var(--code-bg);
+        border: 1px solid #e9ecef;
+        border-radius: 0 0 12px 12px;
+    }
+    
+    .code-pre {
+        margin: 0;
+        padding: 1rem 0;
+        background: transparent;
+        border: none;
+        overflow: visible;
+        position: relative;
+    }
+    
+    /* 行号样式 */
+    .line-numbers {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 50px;
+        background-color: var(--line-number-bg);
+        border-right: 1px solid #e9ecef;
+        padding: 1rem 0;
+        font-family: 'Consolas', 'Monaco', 'Courier New', Courier, monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        text-align: right;
+        user-select: none;
+        color: var(--line-number-color);
+        overflow: hidden;
+        z-index: 1;
+    }
+    
+    .line-number {
+        height: 22.5px;
+        padding-right: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .line-number-highlight {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    /* 代码块样式 - 增强版 */
+    #file-content {
+        font-family: 'Consolas', 'Monaco', 'Courier New', Courier, monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: var(--code-text);
+        white-space: pre-wrap;
+        word-break: break-all;
+        padding: 1rem 1rem 1rem 1.25rem;
+        margin-left: 50px;
+        display: block;
+        min-height: 100%;
+        transition: all 0.3s ease;
+        opacity: 0;
+    }
+    
+    #file-content.code-loaded {
+        opacity: 1;
+    }
+    
+    .word-wrap-transition {
+        transition: white-space 0.3s ease, word-break 0.3s ease;
+    }
+    
+    /* 现代化代码高亮配色方案 */
+    .syntax-comment {
+        color: #6a9955; /* 绿色注释 */
+    }
+    
+    .syntax-keyword {
+        color: #569cd6; /* 蓝色关键字 */
+        font-weight: 600;
+    }
+    
+    .syntax-string {
+        color: #ce9178; /* 棕色字符串 */
+    }
+    
+    .syntax-number {
+        color: #b5cea8; /* 绿色数字 */
+    }
+    
+    .syntax-boolean {
+        color: #569cd6; /* 蓝色布尔值 */
+    }
+    
+    .syntax-function {
+        color: #dcdcaa; /* 黄色函数名 */
+    }
+    
+    .syntax-class {
+        color: #4ec9b0; /* 青色类名 */
+    }
+    
+    .syntax-type {
+        color: #4ec9b0; /* 青色类型 */
+    }
+    
+    .syntax-tag {
+        color: #569cd6; /* 蓝色标签 */
+    }
+    
+    .syntax-attribute {
+        color: #9cdcfe; /* 浅蓝色属性 */
+    }
+    
+    .syntax-selector {
+        color: #d7ba7d; /* 棕色选择器 */
+    }
+    
+    .syntax-property {
+        color: #9cdcfe; /* 浅蓝色属性 */
+    }
+    
+    .syntax-value {
+        color: #ce9178; /* 棕色值 */
+    }
+    
+    .syntax-preprocessor {
+        color: #c586c0; /* 紫色预处理器 */
+    }
+    
+    .syntax-decorator {
+        color: #c586c0; /* 紫色装饰器 */
+    }
+    
+    .syntax-key {
+        color: #9cdcfe; /* 浅蓝色键 */
+    }
+    
+    .syntax-variable {
+        color: #c586c0; /* 紫色变量 */
+    }
+    
+    /* 增强的滚动条样式 */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 5px;
+        transition: background 0.2s ease;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    /* 为代码编辑器内部的滚动条设置样式 */
+    .code-editor::-webkit-scrollbar-track {
+        background: var(--code-bg);
+    }
+    
+    /* 动画效果 */
+    .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+        opacity: 0;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* 响应式设计增强 */
+    @media (max-width: 768px) {
+        .file-viewer-container {
+            padding: 0 0.5rem;
+            margin: 1rem auto;
+        }
+        
+        .file-header-content {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .file-title-section {
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .file-actions {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .file-info-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        .code-header-content {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .code-editor {
+            height: 60vh;
+        }
+        
+        .line-numbers {
+            width: 40px;
+        }
+        
+        #file-content {
+            margin-left: 40px;
+            padding-left: 1rem;
+            font-size: 0.8rem;
+        }
+        
+        .line-number {
+            height: 21px;
+            padding-right: 8px;
+            font-size: 0.8rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .card-header-gradient {
+            padding: 1rem;
+        }
+        
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+        }
+        
+        .file-name {
+            font-size: 1.1rem;
+        }
+        
+        .btn-action {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        
+        .file-info-body {
+            padding: 1rem;
+        }
+        
+        .code-header {
+            padding: 0.75rem 1rem;
+        }
+    }
+</style>
+{% endblock %}

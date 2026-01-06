@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}已完成任务 - 成品管理系统{% endblock %}
+{% block page_title %}已完成任务列表{% endblock %}
+
+{% block content %}
+<div class="section fade-in">
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>产品名称</th>
+            <th>群号</th>
+            <th>单价</th>
+            <th>价格</th>
+            <th>需求</th>
+            <th>文档</th>
+            <th>分配时间</th>
+            <th>完成时间</th>
+            <th>状态</th>
+            <th>操作</th>
+        </tr>
+        {% for product in completed_products %}
+        <tr>
+            <td>{{ product.id }}</td>
+            <td>{{ product.name }}</td>
+            <td>{{ product.group_name or '无' }}</td>
+            <td>
+              {% if product.images %}
+                <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 80px;">
+                  {% for image in product.images %}
+                  <a href="/{{ image.filepath.replace('\\', '/') }}" target="_blank" title="点击查看大图">
+                    <img src="/{{ image.filepath.replace('\\', '/') }}" alt="产品图片" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;">
+                  </a>
+                  {% endfor %}
+                </div>
+                {% else %}
+                无
+                {% endif %}
+            </td>
+            <td>{{ "%.2f"|format(product.unit_price) if product.unit_price else '无' }}</td>
+            <td>{{ "%.2f"|format(product.price) if product.price else '未定价' }}</td>
+            <td>
+                <div class="requirements-cell">
+                    {% if product.requirements %}
+                        {{ product.requirements[:50] }}{% if product.requirements|length > 50 %}...{% endif %}
+                    {% else %}
+                        无
+                    {% endif %}
+                </div>
+            </td>
+            <td>
+                {% if product.documents %}
+                    <a href="{{ url_for('document_viewer.view_document', document_id=product.documents[0].id) }}" target="_blank" class="doc-link">
+                        查看文档
+                    </a>
+                {% else %}
+                    无
+                {% endif %}
+            </td>
+            <td>{{ product.assigned_time.strftime('%Y-%m-%d') }}</td>
+            <td>{{ product.completed_time.strftime('%Y-%m-%d') }}</td>
+            <td>
+                <span class="status-completed">已完成</span>
+            </td>
+            <td>
+                <form method="POST" action="/unmark_project_completed" style="display: inline;">
+                         <input type="hidden" name="project_id" value="{{ product.id }}">
+                    <input type="submit" value="取消完成" class="btn-warning small-btn">
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="11" class="no-data">暂无已完成任务</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <div style="margin-top: 15px;">
+        <a href="/user"><button type="button">返回任务列表</button></a>
+    </div>
+</div>
+
+<style>
+    .status-completed {
+        background-color: #10b981;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+    
+    th {
+        background-color: #f3f4f6;
+        padding: 12px;
+        text-align: left;
+        border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
+    }
+    
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .requirements-cell {
+        max-width: 150px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .doc-link {
+        color: #3b82f6;
+        text-decoration: none;
+    }
+    
+    .doc-link:hover {
+        text-decoration: underline;
+    }
+    
+    .btn-warning {
+        background-color: #f59e0b;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .small-btn {
+        font-size: 12px;
+    }
+    
+    .no-data {
+        text-align: center;
+        color: #6b7280;
+        font-style: italic;
+    }
+</style>
+{% endblock %}

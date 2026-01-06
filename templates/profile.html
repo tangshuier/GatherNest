@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}个人资料{% endblock %}
+{% block page_title %}个人资料{% endblock %}
+
+{% block content %}
+<div class="section">
+    <h2>个人信息</h2>
+    <p><strong>用户名:</strong> {{ user.username }}</p>
+    <p><strong>角色:</strong> {% if user.role == 'admin' %}管理员{% elif user.role == 'engineer' %}工程师{% elif user.role == 'customer_service' %}客服{% elif user.role == 'trainee' %}试岗员工{% else %}{{ user.role }}{% endif %}</p>
+    <p><strong>权限级别:</strong> {{ user.role_level }}</p>
+    <p><strong>姓名:</strong> {{ user_info.name }}</p>
+</div>
+
+<div class="section fade-in">
+    <form method="POST" action="{% if user_id %}{{ url_for('user.edit_user', user_id=user_id) }}{% else %}{% if user.role == 'admin' %}/admin/update_profile{% else %}/user/update_profile{% endif %}{% endif %}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.new_name.label }}
+            {{ form.new_name(class="form-control") }}
+            {% for error in form.new_name.errors %}
+                <span class="error-message">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            <label>用户名 (不可修改):</label>
+            <input type="text" value="{{ user.username }}" disabled>
+        </div>
+        <div class="form-group">
+            <label>角色:</label>
+            <input type="text" value="{% if user.role == 'admin' %}管理员{% else %}工程师{% endif %}" disabled>
+        </div>
+        <div class="form-group">
+            {{ form.new_password.label }}
+            {{ form.new_password(class="form-control", placeholder="留空则不修改") }}
+            {% for error in form.new_password.errors %}
+                <span class="error-message">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div style="text-align: center; margin-top: 1.5rem;">
+            {{ form.submit(class="btn-primary") }}
+            <button type="button" id="backButton" class="btn-secondary">
+                返回
+            </button>
+        </div>
+        <script>
+            // 获取返回按钮元素
+            const backButton = document.getElementById('backButton');
+            // 设置点击事件
+            backButton.addEventListener('click', function() {
+                // 获取来源页面URL
+                const referrer = document.referrer;
+                // 如果有来源页面，则返回来源页面，否则返回默认页面
+                if (referrer) {
+                    window.location.href = referrer;
+                } else {
+                    // 默认返回页面
+                    window.location.href = "{% if user.role == 'admin' %}/admin{% else %}/user{% endif %}";
+                }
+            });
+        </script>
+    </form>
+</div>
+
+<style>
+    /* 容器样式 */
+    .section {
+        padding: 25px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+    }
+    
+    .form-group input, .form-control {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    
+    .error-message {
+        color: #ef4444;
+        font-size: 0.9em;
+        display: block;
+        margin-top: 5px;
+    }
+    
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+        display: inline-block;
+    }
+    
+    .btn-secondary {
+        background: #94a3b8;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: inline-block;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,1005 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.filename }} - 压缩包查看{% endblock %}
+
+{% block content %}
+<div class="archive-viewer-container">
+    <!-- 压缩包信息头部 -->
+    <div class="archive-info-card shadow-sm fade-in">
+        <div class="archive-info-header card-header-gradient">
+            <div class="archive-header-content">
+                <div class="archive-title-section">
+                    <div class="archive-icon">
+                        <i class="fas fa-file-archive"></i>
+                    </div>
+                    <div class="archive-title-container">
+                        <h5 class="archive-name">{{ document.filename }}</h5>
+                        <span class="archive-description">工程压缩包</span>
+                    </div>
+                </div>
+                <div class="archive-actions">
+                    <a href="{{ url_for('project.download_document', document_id=document.id) }}" 
+                       class="btn-action primary" id="download-archive-btn">
+                        <i class="fas fa-download"></i> 下载完整压缩包
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="archive-info-body">
+            <div class="archive-info-grid">
+                <div class="archive-info-item">
+                    <div class="archive-info-label">文件类型</div>
+                    <div class="archive-info-value">工程压缩包</div>
+                </div>
+                <div class="archive-info-item">
+                    <div class="archive-info-label">版本</div>
+                    <div class="archive-info-value">{{ document.version or '1.0' }}</div>
+                </div>
+                <div class="archive-info-item">
+                    <div class="archive-info-label">创建时间</div>
+                    <div class="archive-info-value">{{ document.created_at.strftime('%Y-%m-%d %H:%M:%S') if document.created_at else '未知' }}</div>
+                </div>
+                {% if document.updated_at %}
+                <div class="archive-info-item">
+                    <div class="archive-info-label">更新时间</div>
+                    <div class="archive-info-value">{{ document.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 压缩包内容区域 -->
+    <div class="archive-content-card shadow-sm fade-in" style="animation-delay: 0.1s;">
+        <div class="archive-content-header">
+            <div class="archive-content-title">
+                <i class="fas fa-folder-tree mr-2"></i>文件结构
+            </div>
+        </div>
+        <div class="archive-content-body">
+            <div class="file-structure-container">
+                <!-- 左侧文件树 -->
+                <div class="file-tree-panel">
+                    <div class="file-tree-header">
+                        <div class="file-tree-title">
+                            <i class="fas fa-file-archive mr-2"></i>
+                            <span class="archive-filename">{{ document.filename }}</span>
+                        </div>
+                    </div>
+                    <div id="file-tree" class="file-tree-content"></div>
+                </div>
+                <!-- 右侧文件信息 -->
+                <div class="file-details-panel">
+                    <div class="file-details-header">
+                        <div class="file-details-title">
+                            <i class="fas fa-file-detail mr-2"></i>
+                            <span>文件详情</span>
+                        </div>
+                    </div>
+                    <div id="file-info" class="file-details-content">
+                        <div class="no-selection">
+                            <div class="no-selection-icon">
+                                <i class="fas fa-info-circle text-muted"></i>
+                            </div>
+                            <p class="no-selection-text">请从左侧选择一个文件查看详情</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 文件结构数据
+    const fileStructure = {{ file_structure|safe }};
+    
+    // 格式化文件大小
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // 获取文件图标
+    function getFileIcon(fileName) {
+        const ext = fileName.split('.').pop().toLowerCase();
+        const iconMap = {
+            'txt': 'file-alt', 'py': 'code', 'html': 'html5', 'css': 'css3-alt', 
+            'js': 'js', 'json': 'file-code', 'xml': 'file-code', 'md': 'file-alt',
+            'csv': 'file-csv', 'tsv': 'file-csv', 'java': 'code', 'c': 'code', 
+            'cpp': 'code', 'h': 'code', 'hpp': 'code', 'sh': 'terminal',
+            'bat': 'terminal', 'sql': 'database', 'yaml': 'file-code', 'yml': 'file-code', 
+            'ini': 'file-cog', 'conf': 'file-cog', 'cfg': 'file-cog',
+            'jpg': 'file-image', 'jpeg': 'file-image', 'png': 'file-image', 
+            'gif': 'file-image', 'bmp': 'file-image', 'webp': 'file-image',
+            'mp4': 'file-video', 'avi': 'file-video', 'mov': 'file-video', 
+            'wmv': 'file-video', 'pdf': 'file-pdf', 'doc': 'file-word', 
+            'docx': 'file-word', 'xls': 'file-excel', 'xlsx': 'file-excel',
+            'ppt': 'file-powerpoint', 'pptx': 'file-powerpoint', 'zip': 'file-archive',
+            'rar': 'file-archive', '7z': 'file-archive', 'tar': 'file-archive',
+            'gz': 'file-archive'
+        };
+        return iconMap[ext] || 'file';
+    }
+    
+    // 递归构建文件树
+    function buildFileTree(node, parentElement, level = 0) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'file-tree-item';
+        
+        // 添加展开/收起动画
+        itemDiv.style.opacity = '0';
+        itemDiv.style.transform = 'translateX(-10px)';
+        itemDiv.style.transition = `opacity 0.3s ease ${level * 50}ms, transform 0.3s ease ${level * 50}ms`;
+        
+        if (node.type === 'directory') {
+            // 目录项
+            const dirHeader = document.createElement('div');
+            dirHeader.className = 'file-tree-directory';
+            
+            // 目录展开/收起指示器
+            const expandIcon = document.createElement('div');
+            expandIcon.className = 'expand-icon';
+            expandIcon.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            
+            // 目录图标
+            const dirIcon = document.createElement('div');
+            dirIcon.className = 'file-icon directory-icon';
+            dirIcon.innerHTML = '<i class="fas fa-folder"></i>';
+            
+            // 目录名称
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'file-name';
+            nameSpan.textContent = node.name;
+            
+            dirHeader.appendChild(expandIcon);
+            dirHeader.appendChild(dirIcon);
+            dirHeader.appendChild(nameSpan);
+            itemDiv.appendChild(dirHeader);
+            
+            // 点击事件处理
+            dirHeader.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDirectory(itemDiv);
+            });
+            
+            // 子项容器
+            const childrenDiv = document.createElement('div');
+            childrenDiv.className = 'file-tree-children';
+            childrenDiv.style.maxHeight = '0';
+            childrenDiv.style.overflow = 'hidden';
+            childrenDiv.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
+            childrenDiv.style.opacity = '0';
+            itemDiv.appendChild(childrenDiv);
+            
+            // 递归添加子项
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(child => {
+                    buildFileTree(child, childrenDiv, level + 1);
+                });
+            }
+        } else {
+            // 文件项
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-tree-file';
+            fileItem.setAttribute('data-path', node.path);
+            fileItem.setAttribute('data-name', node.name);
+            
+            // 空占位元素，保持对齐
+            const spacer = document.createElement('div');
+            spacer.className = 'expand-icon';
+            
+            // 文件图标
+            const fileIcon = document.createElement('div');
+            fileIcon.className = 'file-icon';
+            const iconName = getFileIcon(node.name);
+            fileIcon.innerHTML = `<i class="fas fa-${iconName}"></i>`;
+            
+            // 文件名
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'file-name';
+            nameSpan.textContent = node.name;
+            
+            // 文件大小
+            const sizeSpan = document.createElement('span');
+            sizeSpan.className = 'file-size';
+            if (node.size !== undefined) {
+                sizeSpan.textContent = formatFileSize(node.size);
+            }
+            
+            fileItem.appendChild(spacer);
+            fileItem.appendChild(fileIcon);
+            fileItem.appendChild(nameSpan);
+            fileItem.appendChild(sizeSpan);
+            itemDiv.appendChild(fileItem);
+            
+            // 点击文件项显示操作按钮
+            fileItem.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showFileActions(node);
+                
+                // 高亮当前选中的文件
+                document.querySelectorAll('.file-tree-file').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                fileItem.classList.add('selected');
+                
+                // 添加点击动画效果
+                fileItem.classList.add('clicked');
+                setTimeout(() => {
+                    fileItem.classList.remove('clicked');
+                }, 300);
+            });
+        }
+        
+        parentElement.appendChild(itemDiv);
+        
+        // 触发渐入动画
+        setTimeout(() => {
+            itemDiv.style.opacity = '1';
+            itemDiv.style.transform = 'translateX(0)';
+        }, 10);
+    }
+    
+    // 切换目录展开/收起状态
+    function toggleDirectory(directoryElement) {
+        const childrenContainer = directoryElement.querySelector('.file-tree-children');
+        const expandIcon = directoryElement.querySelector('.expand-icon i');
+        const dirIcon = directoryElement.querySelector('.directory-icon i');
+        
+        if (childrenContainer.style.maxHeight === '0px' || !childrenContainer.style.maxHeight) {
+            // 展开目录
+            childrenContainer.style.maxHeight = childrenContainer.scrollHeight + 'px';
+            childrenContainer.style.opacity = '1';
+            expandIcon.className = 'fas fa-chevron-down';
+            dirIcon.className = 'fas fa-folder-open';
+        } else {
+            // 收起目录
+            childrenContainer.style.maxHeight = '0';
+            childrenContainer.style.opacity = '0';
+            expandIcon.className = 'fas fa-chevron-right';
+            dirIcon.className = 'fas fa-folder';
+        }
+    }
+    
+    // 显示文件操作按钮
+    function showFileActions(fileNode) {
+        const fileInfoDiv = document.getElementById('file-info');
+        
+        // 隐藏无选择状态的内容
+        const noSelection = fileInfoDiv.querySelector('.no-selection');
+        if (noSelection) {
+            noSelection.style.display = 'none';
+        }
+        
+        // 检查是否已存在文件详情内容，如果有则移除
+        const fileDetails = fileInfoDiv.querySelector('.file-details');
+        if (fileDetails) {
+            fileDetails.remove();
+        }
+        
+        // 创建新的文件详情内容
+        const newFileDetails = document.createElement('div');
+        newFileDetails.className = 'file-details';
+        
+        // 添加动画类
+        newFileDetails.style.opacity = '0';
+        newFileDetails.style.transform = 'translateY(10px)';
+        newFileDetails.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        
+        // 构建文件详情HTML
+        const fileExt = fileNode.name.split('.').pop().toLowerCase();
+        const iconName = getFileIcon(fileNode.name);
+        
+        const fileSizeText = fileNode.size !== undefined ? formatFileSize(fileNode.size) : '未知';
+        
+        newFileDetails.innerHTML = `
+            <div class="file-header">
+                <div class="file-icon-large">
+                    <i class="fas fa-${iconName}"></i>
+                </div>
+                <div class="file-meta">
+                    <h5 class="file-title">${fileNode.name}</h5>
+                    <div class="file-meta-info">
+                        <span class="file-ext">.${fileExt}</span>
+                        <span class="file-separator">•</span>
+                        <span class="file-size-display">${fileSizeText}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="file-path-section">
+                <div class="path-label">文件路径</div>
+                <div class="path-value">${fileNode.path}</div>
+            </div>
+            
+            <div class="file-actions-section">
+                <a href="{{ url_for('document_viewer.download_archive_file_route', document_id=document.id) }}?file_path=${encodeURIComponent(fileNode.path.replace(/\\/g, '/'))}" 
+                   class="action-button download-button" id="download-file-btn">
+                    <i class="fas fa-download"></i>
+                    <span>下载文件</span>
+                </a>
+            </div>
+        `;
+        
+        // 添加到DOM
+        fileInfoDiv.appendChild(newFileDetails);
+        
+        // 触发渐入动画
+        setTimeout(() => {
+            newFileDetails.style.opacity = '1';
+            newFileDetails.style.transform = 'translateY(0)';
+        }, 10);
+    }
+    
+    // 初始化文件树
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileTreeContainer = document.getElementById('file-tree');
+        
+        // 清空容器
+        fileTreeContainer.innerHTML = '';
+        
+        // 构建文件树
+        buildFileTree(fileStructure, fileTreeContainer);
+        
+        // 为下载按钮添加动画效果
+        const downloadButtons = document.querySelectorAll('#download-archive-btn, #download-file-btn');
+        downloadButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                this.classList.add('downloading');
+                setTimeout(() => {
+                    this.classList.remove('downloading');
+                }, 600);
+            });
+        });
+    });
+</script>
+
+<style>
+    /* 压缩包查看器全局样式 */
+    :root {
+        --archive-bg: #ffffff;
+        --archive-text: #333333;
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .archive-viewer-container {
+        max-width: 100%;
+        margin: 1.5rem auto;
+        padding: 0 1rem;
+    }
+    
+    /* 压缩包信息卡片样式 */
+    .archive-info-card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .archive-info-card:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .card-header-gradient {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .archive-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .archive-title-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .archive-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.2);
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    .archive-title-container {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .archive-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .archive-description {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        color: white;
+    }
+    
+    .archive-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    /* 按钮样式增强 */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        backdrop-filter: blur(4px);
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-action:active {
+        transform: translateY(0);
+    }
+    
+    .btn-action.primary {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-action.primary:hover {
+        background-color: rgba(255, 255, 255, 0.4);
+    }
+    
+    /* 下载中动画效果 */
+    .btn-action.downloading, .action-button.downloading {
+        animation: pulse 0.6s ease-in-out;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(0.95); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    /* 压缩包信息体样式 */
+    .archive-info-body {
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .archive-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .archive-info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .archive-info-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    
+    .archive-info-value {
+        font-size: 0.95rem;
+        color: var(--text-color);
+        font-weight: 500;
+        word-break: break-all;
+    }
+    
+    /* 压缩包内容卡片样式 */
+    .archive-content-card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .archive-content-card:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .archive-content-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem 1.5rem;
+    }
+    
+    .archive-content-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* 文件结构容器 */
+    .archive-content-body {
+        padding: 0;
+    }
+    
+    .file-structure-container {
+        display: flex;
+        height: 70vh;
+    }
+    
+    /* 文件树面板 */
+    .file-tree-panel {
+        flex: 0 0 35%;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #e9ecef;
+        background-color: #fafbfc;
+    }
+    
+    .file-tree-header {
+        padding: 1rem 1.25rem;
+        background-color: #f1f3f4;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .file-tree-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .archive-filename {
+        font-size: 0.9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .file-tree-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem 0;
+    }
+    
+    /* 文件树样式 */
+    .file-tree-item {
+        padding: 0;
+    }
+    
+    .file-tree-directory, .file-tree-file {
+        display: flex;
+        align-items: center;
+        padding: 8px 1.25rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 0;
+        position: relative;
+    }
+    
+    .file-tree-directory:hover, .file-tree-file:hover {
+        background-color: #e8f0fe;
+    }
+    
+    .file-tree-file.selected {
+        background-color: #d2e3fc;
+        color: var(--primary-color);
+        font-weight: 500;
+    }
+    
+    .file-tree-file.clicked {
+        background-color: #c7d7f9;
+    }
+    
+    .expand-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 4px;
+        font-size: 0.75rem;
+        transition: transform 0.2s ease;
+    }
+    
+    .file-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .file-icon.directory-icon {
+        color: #fbbf24;
+    }
+    
+    .file-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .file-size {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-left: 8px;
+    }
+    
+    .file-tree-children {
+        padding-left: 0;
+    }
+    
+    /* 文件详情面板 */
+    .file-details-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .file-details-header {
+        padding: 1rem 1.25rem;
+        background-color: #f1f3f4;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .file-details-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .file-details-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        background-color: var(--archive-bg);
+    }
+    
+    /* 无选择状态 */
+    .no-selection {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6c757d;
+    }
+    
+    .no-selection-icon {
+        font-size: 4rem;
+        opacity: 0.6;
+        margin-bottom: 1rem;
+    }
+    
+    .no-selection-text {
+        font-size: 1.1rem;
+        text-align: center;
+        margin: 0;
+    }
+    
+    /* 文件详情样式 */
+    .file-details {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+    
+    .file-header {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+    
+    .file-icon-large {
+        width: 64px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f1f3f4;
+        border-radius: 8px;
+        font-size: 2rem;
+        color: var(--primary-color);
+    }
+    
+    .file-meta {
+        flex: 1;
+    }
+    
+    .file-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+        color: var(--archive-text);
+    }
+    
+    .file-meta-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .file-separator {
+        opacity: 0.5;
+    }
+    
+    .file-path-section {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .path-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .path-value {
+        font-size: 0.9rem;
+        color: var(--text-color);
+        background-color: #fff;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        word-break: break-all;
+    }
+    
+    .file-actions-section {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .action-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        color: white;
+    }
+    
+    .action-button:active {
+        transform: translateY(0);
+    }
+    
+    /* 动画效果 */
+    .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+        opacity: 0;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* 增强的滚动条样式 */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+        transition: background 0.2s ease;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    .file-tree-content::-webkit-scrollbar-track,
+    .file-details-content::-webkit-scrollbar-track {
+        background: #f8f9fa;
+    }
+    
+    /* 响应式设计增强 */
+    @media (max-width: 1024px) {
+        .file-structure-container {
+            flex-direction: column;
+            height: auto;
+        }
+        
+        .file-tree-panel {
+            flex: 0 0 auto;
+            max-height: 40vh;
+            border-right: none;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .file-details-panel {
+            flex: 1;
+            min-height: 40vh;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .archive-viewer-container {
+            padding: 0 0.5rem;
+            margin: 1rem auto;
+        }
+        
+        .archive-header-content {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        
+        .archive-title-section {
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .archive-actions {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .archive-info-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        .file-tree-header,
+        .file-details-header {
+            padding: 0.75rem 1rem;
+        }
+        
+        .file-tree-directory,
+        .file-tree-file {
+            padding: 8px 1rem;
+        }
+        
+        .file-details-content {
+            padding: 1rem;
+        }
+        
+        .file-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .file-icon-large {
+            width: 56px;
+            height: 56px;
+            font-size: 1.75rem;
+        }
+        
+        .file-title {
+            font-size: 1.3rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .card-header-gradient {
+            padding: 1rem;
+        }
+        
+        .archive-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+        }
+        
+        .archive-name {
+            font-size: 1.1rem;
+        }
+        
+        .btn-action {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .archive-info-body {
+            padding: 1rem;
+        }
+        
+        .archive-content-header {
+            padding: 0.75rem 1rem;
+        }
+        
+        .no-selection-icon {
+            font-size: 3rem;
+        }
+        
+        .no-selection-text {
+            font-size: 1rem;
+        }
+        
+        .file-icon-large {
+            width: 48px;
+            height: 48px;
+            font-size: 1.5rem;
+        }
+        
+        .file-title {
+            font-size: 1.2rem;
+        }
+        
+        .action-button {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}

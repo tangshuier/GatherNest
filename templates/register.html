@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <title>成品管理系统 - 工程师注册</title>
+    <!-- 引入外部CSS文件 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <style>
+        /* 全局样式 */
+        :root {
+            --primary-color: #1e40af;
+            --primary-light: #3b82f6;
+            --secondary-color: #64748b;
+            --background-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --transition-speed: 0.3s;
+            --error-color: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* 注册容器 */
+        .register-container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* 左侧欢迎信息 */
+        .welcome-section {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            max-width: 400px;
+            color: white;
+            animation: slideInLeft 0.8s ease forwards;
+            opacity: 0;
+        }
+
+        .welcome-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .welcome-section p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 右侧注册表单 */
+        .register-form-container {
+            max-width: 500px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideInRight 0.8s ease forwards;
+            margin-left: auto;
+            transition: all 0.3s ease;
+        }
+        
+        .register-form-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .register-form-container h2 {
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 22px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+            background-color: var(--background-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* 自定义placeholder样式 */
+        .form-group input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+            font-style: italic;
+        }
+        
+        .form-group input:-ms-input-placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+            font-style: italic;
+        }
+        
+        .form-group input::-ms-input-placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+            font-style: italic;
+        }
+        
+        /* 自定义表单验证样式 */
+        .form-group input:invalid {
+            border-color: var(--error-color);
+        }
+        
+        /* 禁用默认的浏览器验证提示 */
+        form {
+            novalidate;
+        }
+        
+        /* 自定义验证提示样式（WebKit浏览器） */
+        ::-webkit-input-placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+        
+        /* 尝试自定义验证气泡样式 */
+        ::-webkit-validation-bubble {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        ::-webkit-validation-bubble-arrow {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        
+        ::-webkit-validation-bubble-message {
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 10px 15px;
+        }
+
+        /* 错误提示样式 */
+        .text-danger {
+            color: var(--error-color);
+            font-size: 0.85rem;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* 辅助文本样式 */
+        small {
+            display: block;
+            margin-top: 4px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        /* 按钮样式 */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 35px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #475569;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(100, 116, 139, 0.3);
+        }
+
+        /* 动画 */
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translate(-50px, -50%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(0, -50%);
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                justify-content: center;
+                padding: 15px;
+            }
+
+            .welcome-section {
+                display: none;
+            }
+
+            .register-form-container {
+                margin-left: 0;
+                padding: 30px 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <!-- 左侧欢迎信息 -->
+        <div class="welcome-section">
+            <h2>创建账号</h2>
+            <p>欢迎加入我们的系统，请填写以下信息完成注册。如果您已有账号，请返回登录页面。</p>
+        </div>
+        
+        <!-- 右侧注册表单 -->
+        <div class="register-form-container">
+            <h2>工程师注册</h2>
+            <form method="POST" action="/register">
+                {{ form.hidden_tag() }}
+                
+                <div class="form-group">
+                    {{ form.name.label }}
+                    {{ form.name(size=32, class="form-control", placeholder="请输入您的姓名") }}
+                    {% for error in form.name.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small>请输入2-50个字符</small>
+                </div>
+                
+                <div class="form-group">
+                    {{ form.username.label }}
+                    {{ form.username(size=32, class="form-control", placeholder="请设置用户名") }}
+                    {% for error in form.username.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small>用户名只能包含字母和数字，不支持中文，长度4-20个字符</small>
+                </div>
+                
+                <div class="form-group">
+                    {{ form.password.label }}
+                    {{ form.password(size=32, class="form-control", placeholder="请设置密码") }}
+                    {% for error in form.password.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small>密码长度不能少于8个字符</small>
+                </div>
+                
+                <div class="form-group">
+                    {{ form.confirm_password.label }}
+                    {{ form.confirm_password(size=32, class="form-control", placeholder="请再次输入密码") }}
+                    {% for error in form.confirm_password.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small>两次输入的密码必须一致</small>
+                </div>
+                
+                <div class="button-group">
+                    {{ form.submit(class="btn btn-primary") }}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">返回登录</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // 为表单添加session_id参数
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (form.action && form.action.startsWith('/') && !form.action.includes('://')) {
+                const sessionId = '{{ current_session_id }}';
+                if (sessionId) {
+                    if (!form.querySelector('input[name="session_id"]')) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'session_id';
+                        input.value = sessionId;
+                        form.appendChild(input);
+                    }
+                }
+            }
+        }, true);
+        
+        // 自定义表单验证
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const nameInput = document.querySelector('input[name="name"]');
+            const usernameInput = document.querySelector('input[name="username"]');
+            const passwordInput = document.querySelector('input[name="password"]');
+            const confirmPasswordInput = document.querySelector('input[name="confirm_password"]');
+            
+            // 移除原生的required属性，使用自定义验证
+            nameInput.removeAttribute('required');
+            usernameInput.removeAttribute('required');
+            passwordInput.removeAttribute('required');
+            confirmPasswordInput.removeAttribute('required');
+            
+            // 添加焦点和失焦事件来显示/隐藏验证提示
+            function addValidationEvents(input) {
+                // 清除之前可能存在的自定义验证提示
+                input.addEventListener('focus', function() {
+                    const existingError = this.parentNode.querySelector('.custom-error');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+                    this.classList.remove('input-error');
+                });
+            }
+            
+            addValidationEvents(nameInput);
+            addValidationEvents(usernameInput);
+            addValidationEvents(passwordInput);
+            addValidationEvents(confirmPasswordInput);
+            
+            // 表单提交验证
+            form.addEventListener('submit', function(e) {
+                let isValid = true;
+                
+                // 验证姓名
+                if (!nameInput.value.trim()) {
+                    showError(nameInput, '请输入您的姓名');
+                    isValid = false;
+                } else if (nameInput.value.trim().length < 2) {
+                    showError(nameInput, '姓名长度至少为2个字符');
+                    isValid = false;
+                } else if (nameInput.value.trim().length > 50) {
+                    showError(nameInput, '姓名长度不能超过50个字符');
+                    isValid = false;
+                }
+                
+                // 验证用户名
+                if (!usernameInput.value.trim()) {
+                    showError(usernameInput, '请设置用户名');
+                    isValid = false;
+                } else if (usernameInput.value.trim().length < 4) {
+                    showError(usernameInput, '用户名长度至少为4个字符');
+                    isValid = false;
+                } else if (usernameInput.value.trim().length > 20) {
+                    showError(usernameInput, '用户名长度不能超过20个字符');
+                    isValid = false;
+                } else if (!/^[a-zA-Z0-9]+$/.test(usernameInput.value.trim())) {
+                    showError(usernameInput, '用户名只能包含字母和数字');
+                    isValid = false;
+                }
+                
+                // 验证密码
+                if (!passwordInput.value) {
+                    showError(passwordInput, '请设置密码');
+                    isValid = false;
+                } else if (passwordInput.value.length < 8) {
+                    showError(passwordInput, '密码长度不能少于8个字符');
+                    isValid = false;
+                }
+                
+                // 验证确认密码
+                if (!confirmPasswordInput.value) {
+                    showError(confirmPasswordInput, '请再次输入密码');
+                    isValid = false;
+                } else if (confirmPasswordInput.value !== passwordInput.value) {
+                    showError(confirmPasswordInput, '两次输入的密码不一致');
+                    isValid = false;
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    // 滚动到第一个错误的输入框
+                    const firstError = form.querySelector('.input-error');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstError.focus();
+                    }
+                }
+            });
+            
+            // 显示自定义错误提示
+            function showError(input, message) {
+                // 移除之前的错误提示（包括Flask的默认错误提示）
+                const errorElements = input.parentNode.querySelectorAll('.text-danger, .custom-error');
+                errorElements.forEach(el => el.remove());
+                
+                // 添加错误类
+                input.classList.add('input-error');
+                
+                // 创建错误提示元素
+                const errorElement = document.createElement('div');
+                errorElement.className = 'custom-error';
+                errorElement.textContent = message;
+                errorElement.style.cssText = `
+                    color: var(--error-color);
+                    font-size: 0.85rem;
+                    margin-top: 4px;
+                    font-weight: 500;
+                    animation: fadeIn 0.3s ease;
+                `;
+                
+                // 找到small标签并在其前面插入错误提示
+                const smallTag = input.parentNode.querySelector('small');
+                if (smallTag) {
+                    input.parentNode.insertBefore(errorElement, smallTag);
+                } else {
+                    input.parentNode.appendChild(errorElement);
+                }
+            }
+            
+            // 添加输入错误样式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-5px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .input-error {
+                    border-color: var(--error-color) !important;
+                    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>

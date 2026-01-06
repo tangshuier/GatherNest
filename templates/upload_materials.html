@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - 项目管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{{ page_title }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('project_management.projects_list', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> 返回项目列表
+        </a>
+    </div>
+</div>
+
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">项目信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>项目ID：</strong>{{ project.id }}</p>
+                            <p><strong>项目名称：</strong>{{ project.name }}</p>
+                            <p><strong>项目类型：</strong>{{ '定制' if project.project_type == 'custom' else '成品' }}</p>
+                            <p><strong>上传类型：</strong>{{ '论文资料' if upload_type == 'paper' else '项目资料' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">文件上传</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="file">选择文件</label>
+                            <input type="file" class="form-control-file" id="file" name="file" multiple required>
+                            <small class="form-text text-muted">您可以选择多个文件同时上传</small>
+                        </div>
+                        
+                        <!-- 隐藏字段，用于传递上传类型 -->
+                        <input type="hidden" name="document_type" value="{{ upload_type }}">
+                        
+                        <div class="form-group">
+                            <label for="file_type">文件类型</label>
+                            <select class="form-control" id="file_type" name="file_type">
+                                <option value="document">文档</option>
+                                <option value="image">图片</option>
+                                <option value="package">压缩包</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> 上传文件
+                        </button>
+                        
+                        <a href="{{ url_for('project_management.projects_list', project_id=project.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> 取消
+                        </a>
+                    </form>
+                </div>
+            </div>
+{% endblock %}

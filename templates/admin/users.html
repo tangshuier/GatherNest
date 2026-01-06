@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}用户管理 - 成品管理系统{% endblock %}
+{% block page_title %}用户管理中心{% endblock %}
+
+{% block content %}
+<!-- 管理员操作区 -->
+<div class="section fade-in">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+        <a href="/admin/add_engineer"><button>添加员工账户</button></a>
+        {% if current_user.role_level in (0, 1) %}
+        <a href="/admin/add_admin"><button>添加管理员账户</button></a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section fade-in">
+    <h3>管理员列表</h3>
+    <table class="user-table">
+        <tr>
+            <th>ID</th>
+            <th>姓名</th>
+            <th>用户名</th>
+            <th>权限等级</th>
+            <th>操作</th>
+        </tr>
+        {% set non_super_admins = admins | rejectattr('role_level', 'equalto', 0) | list %}
+        {% for admin in non_super_admins %}
+        <tr>
+            <td>{{ admin.id }}</td>
+            <td>{{ admin.name or '未设置' }}</td>
+            <td>{{ admin.username }}</td>
+            <td>{% if admin.role_level == 0 %}超级管理员{% elif admin.role_level == 1 %}高级管理员{% else %}普通管理员{% endif %}</td>
+            <td>
+                {% if current_user.role_level == 0 and admin.id != current_user.id %}
+                <a href="/user/edit_user/{{ admin.id }}"><button class="secondary small-btn">编辑用户信息</button></a>
+                <form method="POST" action="/admin/set_admin_permission"
+                    style="display: inline-block; margin-left: 5px;">
+                    <input type="hidden" name="admin_id" value="{{ admin.id }}">
+                    <select name="role_level" required style="width: auto;" onchange="if(confirm('确定修改权限吗？')) this.form.submit();">
+                        <option value="1" {% if admin.role_level==1 %}selected{% endif %}>
+                            高级管理员(1级)
+                        </option>
+                        <option value="2" {% if admin.role_level==2 %}selected{% endif %}>
+                            普通管理员(2级)
+                        </option>
+                        <option value="3">
+                            降级为工程师(3级)
+                        </option>
+                    </select>
+                </form>
+                {% endif %}
+                {% if current_user.role_level < admin.role_level and admin.id !=current_user.id %} <form method="POST" 
+                    action="/admin/remove_admin" style="display: inline-block; margin-left: 5px;"
+                    onsubmit="return confirm('确定移除该管理员吗？')">
+                    <input type="hidden" name="admin_user_id" value="{{ admin.id }}">
+                    <button type="submit" class="btn-danger small-btn">移除</button>
+                    </form>
+                    {% endif %}
+                    {% if admin.id == current_user.id %}
+                    <span>当前登录（不可操作）</span>
+                    {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5" class="no-data">暂无管理员</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="section fade-in">
+    <h3>员工列表</h3>
+    <table class="user-table">
+        <tr>
+            <th>ID</th>
+            <th>姓名</th>
+            <th>用户名</th>
+            <th>角色类型</th>
+            <th>权限等级</th>
+            <th>操作</th>
+        </tr>
+        {% for employee in employees %}
+        <tr>
+            <td>{{ employee.id }}</td>
+            <td>{{ employee.name or '未设置' }}</td>
+            <td>{{ employee.username }}</td>
+            <td>
+                {% if employee.role_detail == 'engineer' %}工程师{% elif employee.role_detail == 'customer_service' %}客服{% else %}试岗员工{% endif %}
+            </td>
+            <td>{% if employee.role_level == 3 %}正式员工(3级){% elif employee.role_level == 4 %}试岗员工(4级){% else %}{{ employee.role_level }}{% endif %}</td>
+            <td>
+                {% if current_user.role_level < employee.role_level %}
+                <a href="/user/edit_user/{{ employee.id }}"><button class="secondary small-btn">编辑用户信息</button></a>
+                <form method="POST" action="/admin/set_admin_permission"
+                    style="display: inline-block; margin-left: 5px;">
+                    <input type="hidden" name="admin_id" value="{{ employee.id }}">
+                    <select name="role_level" required style="width: auto;" onchange="if(confirm('确定修改权限吗？')) this.form.submit();">
+                        <option value="4" {% if employee.role_level==4 %}selected{% endif %}>
+                            试岗员工(4级)
+                        </option>
+                        <option value="3" {% if employee.role_level==3 %}selected{% endif %}>
+                            正式员工(3级)
+                        </option>
+                        {% if current_user.role_level == 0 %}
+                        <option value="1">
+                            升级为高级管理员(1级)
+                        </option>
+                        <option value="2">
+                            升级为普通管理员(2级)
+                        </option>
+                        {% endif %}
+                    </select>
+                    {% if employee.role_level == 3 %}
+                    <select name="role_detail" style="width: auto; margin-left: 5px;" onchange="if(confirm('确定修改角色类型吗？')) this.form.submit();">
+                        <option value="engineer" {% if employee.role_detail=='engineer' %}selected{% endif %}>工程师</option>
+                        <option value="customer_service" {% if employee.role_detail=='customer_service' %}selected{% endif %}>客服</option>
+                    </select>
+                    {% endif %}
+                </form>
+                {% endif %}
+                {% if current_user.role_level < employee.role_level and employee.id != current_user.id %}
+                <form method="POST" action="/admin/remove_engineer" style="display: inline-block; margin-left: 5px;"
+                    onsubmit="return confirm('确定移除该员工？其分配的产品将被解除分配')">
+                    <input type="hidden" name="user_id" value="{{ employee.id }}">
+                    <button type="submit" class="btn-danger small-btn">移除</button>
+                </form>
+                {% endif %}
+                {% if employee.id == current_user.id %}
+                <span>当前登录（不可删除）</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" class="no-data">暂无员工</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+<style>
+    /* 状态标签样式 */
+    .status-badge {
+        padding: 3px 8px;
+        border-radius: 4px;
+        color: white;
+        display: inline-block;
+    }
+
+    /* 按钮样式 */
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .btn-secondary {
+        background: #94a3b8;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .btn-danger {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .small-btn {
+        padding: 3px 8px;
+        font-size: 0.8rem;
+    }
+
+    /* 动画样式 */
+    .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+        opacity: 0;
+    }
+
+    .section:nth-child(1) {
+        animation-delay: 0.1s;
+    }
+
+    .section:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .section:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .user-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .user-table th,
+    .user-table td {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+    }
+
+    .no-data {
+        text-align: center;
+        color: #666;
+    }
+</style>
+{% endblock %}

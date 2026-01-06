@@ -1,0 +1,745 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if current_user.role == 'engineer' or (hasattr(current_user, 'role_detail') and current_user.role_detail == 'engineer') or (hasattr(current_user, 'role_level') and current_user.role_level == 3) %}
+    工程师教学资料 - 资料整理系统
+  {% else %}
+    培训资料 - 试岗员工专区
+  {% endif %}
+{% endblock %}
+
+{% block page_title %}资料{% endblock %}
+
+{% block content %}
+<!-- 视频播放器模态框 -->
+<div class="modal fade" id="videoPlayerModal" tabindex="-1" role="dialog" aria-labelledby="videoPlayerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="videoPlayerModalLabel">视频播放</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="video-container">
+          <video id="videoPlayer" controls preload="metadata" playsinline crossorigin="anonymous">
+            <source src="" type="video/mp4">
+            您的浏览器不支持视频播放。
+          </video>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 文档查看器模态框 -->
+<div class="modal fade" id="documentViewerModal" tabindex="-1" role="dialog" aria-labelledby="documentViewerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="documentViewerModalLabel">文档查看</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="document-container">
+          <iframe id="documentViewer" class="w-100" frameborder="0"></iframe>
+          <p id="documentFallback" class="text-center text-gray-500 mt-5">
+            文档无法在浏览器中直接查看，<a href="" target="_blank">点击此处下载</a>。
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="documentDownloadLink" href="" target="_blank" class="btn btn-secondary mr-2">下载文档</a>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 简化的文本处理函数
+  function renderText(text) {
+    return text;
+  }
+
+  // 计算并更新学习进度
+  function updateProgress() {
+    // 简单的进度更新函数
+    var allCheckboxes = document.querySelectorAll('.completion-checkbox');
+    var totalRequiredMaterials = 0;
+    var completedRequiredMaterials = 0;
+    
+    // 遍历所有复选框
+    for (var i = 0; i < allCheckboxes.length; i++) {
+      var checkbox = allCheckboxes[i];
+      var isRequired = checkbox.getAttribute('data-is-required') === 'true';
+      if (!isRequired) isRequired = checkbox.getAttribute('data-is-required') === 'True';
+      
+      if (isRequired) {
+        totalRequiredMaterials++;
+        if (checkbox.checked) {
+          completedRequiredMaterials++;
+        }
+      }
+    }
+    
+    // 更新计数显示
+    var completedCountElement = document.getElementById('completed-count');
+    var requiredTotalElement = document.getElementById('required-total');
+    
+    if (completedCountElement) completedCountElement.textContent = completedRequiredMaterials;
+    if (requiredTotalElement) requiredTotalElement.textContent = totalRequiredMaterials;
+    
+    // 更新进度条
+    var progressBar = document.querySelector('.progress-bar');
+    if (progressBar) {
+      var progressPercentage = 0;
+      if (totalRequiredMaterials > 0) {
+        progressPercentage = Math.round(completedRequiredMaterials / totalRequiredMaterials * 100);
+      }
+      progressBar.style.width = progressPercentage + '%';
+      progressBar.setAttribute('aria-valuenow', progressPercentage);
+      progressBar.textContent = progressPercentage + '%';
+    }
+  }
+
+  // 页面加载完成后初始化功能
+  document.addEventListener('DOMContentLoaded', function() {
+    // 初始化学习进度
+    updateProgress();
+    
+    // 为所有完成状态复选框添加事件监听
+    var checkboxes = document.querySelectorAll('.completion-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+      checkboxes[i].addEventListener('change', function() {
+        var materialId = this.getAttribute('data-material-id');
+        var isCompleted = this.checked;
+        var isRequired = this.getAttribute('data-is-required') === 'true' || this.getAttribute('data-is-required') === 'True';
+        
+        // 这里可以添加AJAX请求来保存学习完成状态到服务器
+        
+        // 如果是必学资源，更新进度
+        if (isRequired) {
+          updateProgress();
+        }
+      });
+    }
+
+    // 视频播放模态框功能
+    var videoModal = $('#videoPlayerModal');
+    var videoPlayer = document.getElementById('videoPlayer');
+    var videoTitle = document.getElementById('videoPlayerModalLabel');
+    
+    // 视频播放优化函数
+    function optimizeVideoPlayback() {
+      const videoElements = videoModal.querySelectorAll('video');
+      videoElements.forEach(function(video) {
+        video.preload = 'metadata';
+        video.addEventListener('loadedmetadata', function() {
+          const aspectRatio = video.videoWidth / video.videoHeight;
+          const containerWidth = video.parentElement.offsetWidth;
+          const optimalHeight = containerWidth / aspectRatio;
+          video.style.width = '100%';
+          video.style.height = optimalHeight + 'px';
+        });
+      });
+    }
+    
+    // 为所有视频链接添加点击事件
+    var videoLinks = document.querySelectorAll('.video-link');
+    for (var i = 0; i < videoLinks.length; i++) {
+      var link = videoLinks[i];
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var videoUrl = this.getAttribute('data-video-url') || this.href;
+        var videoName = this.textContent;
+        
+        // 设置视频源和标题
+        videoPlayer.src = videoUrl;
+        videoTitle.textContent = videoName;
+        
+        // 优化视频播放设置
+        optimizeVideoPlayback();
+        
+        // 打开模态框
+        videoModal.modal('show');
+      });
+    }
+    
+    // 模态框关闭时重置视频
+    videoModal.on('hidden.bs.modal', function() {
+      videoPlayer.pause();
+      videoPlayer.src = '';
+      videoPlayer.load();
+    });
+    
+    // 模态框显示后确保视频容器有足够空间
+    videoModal.on('shown.bs.modal', function() {
+      var videoContainer = document.querySelector('.video-container');
+      if (videoContainer) {
+        // 确保视频容器高度足够
+        var windowHeight = window.innerHeight;
+        var modalHeader = this.querySelector('.modal-header');
+        var modalFooter = this.querySelector('.modal-footer');
+        
+        var headerHeight = modalHeader ? modalHeader.offsetHeight : 0;
+        var footerHeight = modalFooter ? modalFooter.offsetHeight : 0;
+        
+        // 设置视频容器最大高度，留出一些边距
+        var maxHeight = windowHeight * 0.7;
+        videoContainer.style.maxHeight = maxHeight + 'px';
+      }
+    });
+    
+    // 文档查看器模态框功能
+    var docModal = $('#documentViewerModal');
+    var docViewer = document.getElementById('documentViewer');
+    var docTitle = document.getElementById('documentViewerModalLabel');
+    var docFallback = document.getElementById('documentFallback');
+    var docDownloadLink = document.getElementById('documentDownloadLink');
+    var docFallbackLink = docFallback.querySelector('a');
+    
+    // 支持在浏览器中直接预览的文件类型
+    var previewableTypes = [
+      'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md',
+      'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'
+    ];
+    
+    // 为所有文档链接添加点击事件
+    var docLinks = document.querySelectorAll('a.text-blue-600');
+    for (var i = 0; i < docLinks.length; i++) {
+      var link = docLinks[i];
+      // 确保这是一个文件链接（不是锚点或其他链接）
+      if (link.getAttribute('href') && link.getAttribute('href').startsWith('/')) {
+        link.addEventListener('click', function(e) {
+          // 如果是视频链接，不阻止默认行为（让视频播放器处理）
+          if (this.classList.contains('video-link')) {
+            return;
+          }
+          
+          e.preventDefault();
+          var docUrl = this.href;
+          var docName = this.textContent;
+          var fileExtension = getFileExtension(docUrl).toLowerCase();
+          
+          // 设置文档标题和下载链接
+          docTitle.textContent = docName;
+          docDownloadLink.href = docUrl;
+          docFallbackLink.href = docUrl;
+          
+          // 根据文件类型决定是否在iframe中预览
+          if (previewableTypes.includes(fileExtension)) {
+            // 对于PDF和Office文档，使用Google文档查看器或直接显示
+            if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension)) {
+              // 对于Office文档，使用Google文档查看器
+              if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension)) {
+                docViewer.src = 'https://docs.google.com/gview?url=' + encodeURIComponent(window.location.origin + docUrl) + '&embedded=true';
+              } else {
+                // 对于PDF，直接显示
+                docViewer.src = docUrl;
+              }
+              docViewer.style.display = 'block';
+              docFallback.style.display = 'none';
+            } else if (fileExtension === 'md') {
+              // 对于Markdown文件，使用简化的样式处理
+              var xhr = new XMLHttpRequest();
+              xhr.open('GET', docUrl, true);
+              xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                  // 先在主作用域中渲染Markdown
+                  var markdownContent = xhr.responseText;
+                  var renderedContent = renderText(markdownContent);
+                  
+                  // 创建一个带有自定义样式的HTML页面
+                  var html = '<!DOCTYPE html>\n';
+                  html += '<html>\n';
+                  html += '<head>\n';
+                  html += '  <meta charset="UTF-8">\n';
+                  html += '  <title>' + docName + '</title>\n';
+                  html += '  <style>\n';
+                  html += '    body {\n';
+                  html += '      background-color: white !important;\n';
+                  html += '      color: #333333 !important;\n';
+                  html += '      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;\n';
+                  html += '      line-height: 1.6;\n';
+                  html += '      margin: 0;\n';
+                  html += '      padding: 20px;\n';
+                  html += '    }\n';
+                  html += '    h1, h2, h3, h4, h5, h6 {\n';
+                  html += '      color: #2c3e50;\n';
+                  html += '      margin-top: 1.5em;\n';
+                  html += '      margin-bottom: 0.5em;\n';
+                  html += '    }\n';
+                  html += '    p {\n';
+                  html += '      margin-bottom: 1em;\n';
+                  html += '    }\n';
+                  html += '    pre {\n';
+                  html += '      background-color: #f5f5f5;\n';
+                  html += '      border-radius: 4px;\n';
+                  html += '      padding: 1em;\n';
+                  html += '      overflow-x: auto;\n';
+                  html += '      color: #333;\n';
+                  html += '    }\n';
+                  html += '    code {\n';
+                  html += '      font-family: \'Courier New\', Courier, monospace;\n';
+                  html += '      background-color: #f5f5f5;\n';
+                  html += '      padding: 0.2em 0.4em;\n';
+                  html += '      border-radius: 3px;\n';
+                  html += '      color: #333;\n';
+                  html += '    }\n';
+                  html += '    a {\n';
+                  html += '      color: #0066cc;\n';
+                  html += '      text-decoration: none;\n';
+                  html += '    }\n';
+                  html += '    a:hover {\n';
+                  html += '      text-decoration: underline;\n';
+                  html += '    }\n';
+                  html += '    ul, ol {\n';
+                  html += '      margin-bottom: 1em;\n';
+                  html += '      padding-left: 2em;\n';
+                  html += '    }\n';
+                  html += '    table {\n';
+                  html += '      border-collapse: collapse;\n';
+                  html += '      width: 100%;\n';
+                  html += '      margin-bottom: 1em;\n';
+                  html += '    }\n';
+                  html += '    th, td {\n';
+                  html += '      border: 1px solid #ddd;\n';
+                  html += '      padding: 8px;\n';
+                  html += '      text-align: left;\n';
+                  html += '    }\n';
+                  html += '    th {\n';
+                  html += '      background-color: #f2f2f2;\n';
+                  html += '      color: #333;\n';
+                  html += '    }\n';
+                  html += '  </style>\n';
+                  html += '</head>\n';
+                  html += '<body>\n';
+                  html += '  <div class="markdown-content">' + renderedContent + '</div>\n';
+                  html += '</body>\n';
+                  html += '</html>';
+                
+                // 使用data URL加载HTML内容
+                var blob = new Blob([html], { type: 'text/html' });
+                var url = URL.createObjectURL(blob);
+                docViewer.src = url;
+                docViewer.style.display = 'block';
+                docFallback.style.display = 'none';
+                }
+              };
+              xhr.send();
+              
+              // 在模态框关闭时释放blob URL
+              docModal.one('hidden.bs.modal', function() {
+                var currentSrc = docViewer.src;
+                if (currentSrc.indexOf('blob:') === 0) {
+                  URL.revokeObjectURL(currentSrc);
+                  docViewer.src = '';
+                }
+              });
+            } else {
+              // 对于图片和其他文本文件，直接显示
+              docViewer.src = docUrl;
+              docViewer.style.display = 'block';
+              docFallback.style.display = 'none';
+            }
+          } else {
+            // 对于不支持预览的文件类型，显示下载提示
+            docViewer.style.display = 'none';
+            docFallback.style.display = 'block';
+          }
+          
+          // 设置iframe高度
+          setIframeHeight();
+          
+          // 打开模态框
+          docModal.modal('show');
+        };
+      }
+    }
+    
+    // 模态框关闭时重置文档查看器和释放blob URL
+    docModal.on('hidden.bs.modal', function() {
+      var currentSrc = docViewer.src;
+      if (currentSrc.indexOf('blob:') === 0) {
+        URL.revokeObjectURL(currentSrc);
+      }
+      docViewer.src = '';
+    });
+    
+    // 模态框显示时设置iframe高度
+    docModal.on('shown.bs.modal', function() {
+      setIframeHeight();
+    });
+    
+    // 窗口大小改变时调整iframe高度
+    window.addEventListener('resize', function() {
+      if (docModal.hasClass('show')) {
+        setIframeHeight();
+      }
+    });
+    
+    // 获取文件扩展名的辅助函数
+    function getFileExtension(url) {
+      var match = url.match(/\.([^.]+)$/);
+      return match ? match[1] : '';
+    }
+    
+    // 设置iframe高度的函数
+    function setIframeHeight() {
+      var modalBody = docModal.find('.modal-body');
+      var modalBodyHeight = modalBody.height();
+      docViewer.style.height = modalBodyHeight - 20 + 'px';
+    }
+  });
+</script>
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- 主要内容区域 -->
+        <div class="col-md-12">
+            {% if current_user.role == 'engineer' or (hasattr(current_user, 'role_detail') and current_user.role_detail == 'engineer') or (hasattr(current_user, 'role_level') and current_user.role_level == 3) %}
+                <h1 class="text-center mb-6">工程师教学资料</h1>
+                <div class="alert alert-info mb-6 p-5 rounded-md">
+                    <strong>欢迎！</strong> 这里提供了工程师所需的所有教学资料和技术文档。
+                </div>
+            {% else %}
+                <h1 class="text-center mb-6">试岗员工资料</h1>
+                <div class="alert alert-info mb-6 p-5 rounded-md">
+                    <strong>欢迎！</strong> 这里提供了试岗期间所需的所有资料。请按照学习路径完成所有内容。
+                </div>
+            {% endif %}
+                
+                {% if categories %}
+                <div class="card shadow-lg p-6 mb-6 bg-white rounded-lg border border-gray-200">
+                    <h2 class="text-primary">学习路径</h2>
+                    <div class="ml-6 mt-2">
+                        <ol class="list-decimal pl-6 space-y-3">
+                            {% for category in categories %}
+                            <li class="py-1">{{ category.name }} - 
+                                <span class="badge {% if category.is_required %}badge-danger{% elif category.is_basic %}badge-primary{% else %}badge-secondary{% endif %}">
+                                    {% if category.is_required %}必学{% elif category.is_basic %}基础{% else %}进阶{% endif %}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="training-materials pl-0">
+                    <h2 class="text-primary">资料列表</h2>
+                    
+                    <!-- 搜索表单 -->
+                    <div class="card shadow-md p-4 mb-6 bg-white rounded-lg border border-gray-200 w-100">
+                        <form action="{{ url_for('training_materials') }}" method="get" class="d-flex">
+                            <input type="text" 
+                                   name="search" 
+                                   placeholder="搜索资料名称、描述或类别..." 
+                                   class="form-control flex-grow-1 mr-3 border-gray-300 rounded-md transition-all duration-200 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20 px-4 py-2"
+                                   value="{{ request.args.get('search', '') }}">
+                            <button type="submit" class="btn btn-primary px-6 py-2 rounded-md transition-all duration-200 hover:bg-primary/90 focus:ring-2 focus:ring-primary/30">
+                                <i class="fas fa-search mr-2"></i>搜索
+                            </button>
+                            {% if search_performed %}
+                            <a href="{{ url_for('training_materials') }}" class="btn btn-secondary ml-2 px-4 py-2 rounded-md transition-all duration-200 hover:bg-secondary/90 focus:ring-2 focus:ring-secondary/30">
+                                重置
+                            </a>
+                            {% endif %}
+                        </form>
+                        {% if search_performed %}
+                        <p class="text-sm text-gray-600 mt-3">搜索结果: "{{ request.args.get('search') }}" ({{ total_materials }} 个资料)</p>
+                        {% else %}
+                        <p class="text-sm text-gray-600 mt-3">共 {{ total_materials }} 个资料</p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if materials_by_category %}
+                        {% for category in materials_by_category %}
+                        <div class="card shadow-md p-6 mb-6 bg-white rounded-lg border border-gray-200 w-100" id="{{ category.name|lower|replace(' ', '-') }}">
+                            <h3 class="text-secondary mb-4">
+                                <i class="fas fa-folder mr-2"></i>{{ category.name }}
+                            </h3>
+                            <!-- 资料列表表格 -->
+                            <div class="table-responsive">
+                            <table class="table table-hover w-100">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th scope="col" class="w-12">类型</th>
+                                        <th scope="col">资料名称</th>
+                                        <th scope="col" class="w-16">要求</th>
+                                        <th scope="col">描述</th>
+                                        <th scope="col" class="w-24">学习完成</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for material in category.materials %}
+                                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                                        <td class="align-middle">
+                                            {% if material.file_type == 'pdf' %}
+                                            <i class="fas fa-file-pdf text-danger text-xl"></i>
+                                            {% elif material.file_type in ['doc', 'docx'] %}
+                                            <i class="fas fa-file-word text-blue text-xl"></i>
+                                            {% elif material.file_type in ['xls', 'xlsx'] %}
+                                            <i class="fas fa-file-excel text-green text-xl"></i>
+                                            {% elif material.file_type in ['ppt', 'pptx'] %}
+                                            <i class="fas fa-file-powerpoint text-orange text-xl"></i>
+                                            {% elif material.file_type in ['mp4', 'avi', 'mov', 'wmv'] %}
+                                            <i class="fas fa-video text-primary text-xl"></i>
+                                            {% else %}
+                                            <i class="fas fa-file text-gray text-xl"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle font-medium">
+                                            {% if material.file_path %}
+                                                {% if material.file_type in ['mp4', 'avi', 'mov', 'wmv'] %}
+                                            <a href="#" class="text-blue-600 hover:underline video-link" data-video-url="{{ url_for('video.serve_video', filename=material.file_path.split('\\')[-1] if '\\' in material.file_path else material.file_path.split('/')[-1]) }}">{{ material.title }}</a>
+                                            {% else %}
+                                            <a href="/{{ material.file_path }}" class="text-blue-600 hover:underline">{{ material.title }}</a>
+                                            {% endif %}
+                                            {% else %}
+                                            <span class="text-gray-500">{{ material.title }} <small>(暂未上传资料)</small></span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle">
+                                            {% if material.is_required %}
+                                            <span class="badge badge-danger">必学</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle text-sm text-gray-600">
+                                            {{ material.description or '无描述' }}
+                                        </td>
+                                        <td class="align-middle">
+                                            <div class="custom-control custom-checkbox d-flex justify-content-center">
+                                                <input type="checkbox" class="custom-control-input completion-checkbox" id="material-{{ material.id }}" 
+                                                       data-material-id="{{ material.id }}" 
+                                                       data-is-required="{{ material.is_required }}" 
+                                                       {% if material.is_completed %}checked{% endif %}>
+                                                <label class="custom-control-label" for="material-{{ material.id }}"></label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="alert alert-info mt-4">
+                        暂无资料，请联系管理员添加。
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    暂无资料，请联系管理员添加。
+                </div>
+                {% endif %}
+                
+                {% if current_user.role == 'engineer' or (hasattr(current_user, 'role_detail') and current_user.role_detail == 'engineer') or (hasattr(current_user, 'role_level') and current_user.role_level == 3) %}
+                    <div class="text-center mt-6">
+                        <a href="{{ url_for('user.user_panel') }}" class="btn btn-secondary">返回工程师面板</a>
+                    </div>
+                {% else %}
+                    <div class="card shadow-lg p-6 mb-6 bg-white rounded-lg border border-gray-200 w-100">
+                        <h2 class="text-primary">学习进度跟踪</h2>
+                        <div class="mt-4 pl-0">
+                            <div class="progress mb-3 w-100">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 30%" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">30%</div>
+                            </div>
+                            <p class="text-sm text-gray-600 ml-0">已完成 <span id="completed-count">0</span>/<span id="required-total">0</span> 个必学资料</p>
+                        </div>
+                        
+                        <div class="mt-6 pl-0">
+                            <h3 class="text-secondary">即将截止的任务</h3>
+                            <div class="alert alert-warning mt-3 pl-0">
+                                <strong>截止日期提醒：</strong> "公司文化与价值观"模块需要在 <strong>3天后</strong> 完成
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-6">
+                        <a href="{{ url_for('user.trainee_panel') }}" class="btn btn-secondary">返回试岗面板</a>
+                    </div>
+                {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // 添加分类筛选功能的JavaScript代码
+    document.addEventListener('DOMContentLoaded', function() {
+        // 侧边栏分类链接点击事件
+        const categoryLinks = document.querySelectorAll('.category-link');
+        categoryLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // 移除所有链接的高亮
+                categoryLinks.forEach(item => item.classList.remove('bg-primary', 'text-white'));
+                // 添加当前链接的高亮
+                this.classList.add('bg-primary', 'text-white');
+                
+                // 平滑滚动到对应的分类内容
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // 筛选复选框事件
+        const filterCheckboxes = document.querySelectorAll('input[type="checkbox"][id^="filter-"]');
+        filterCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // 这里可以添加筛选逻辑，根据选中的复选框显示或隐藏不同类型的资料
+                // 目前只是预留了筛选功能的UI，实际的筛选逻辑需要根据后端数据进一步实现
+                console.log('筛选选项改变:', this.id, this.checked);
+            });
+        });
+    });
+</script>
+
+<style>
+/* 全局重置和基础样式 */
+* {
+    box-sizing: border-box;
+}
+
+/* 主要容器样式 */
+.container {
+    padding: 25px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 培训资料主区域 */
+.training-materials {
+    margin-top: 24px;
+}
+
+.training-materials a:hover {
+    text-decoration: underline;
+}
+
+/* 表格样式优化 */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    background-color: transparent;
+}
+
+.table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table td, .table th {
+    padding: 12px 15px;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+    color: #212529;
+    background-color: rgba(0,0,0,0.04);
+}
+
+/* 响应式表格 */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive > .table {
+    margin-bottom: 0;
+}
+
+/* 徽章样式 */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.badge-danger {
+    color: #fff;
+    background-color: #dc3545;
+}
+
+.list-unstyled li:last-child {
+    margin-bottom: 0;
+}
+
+.list-unstyled li:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.category-tree {
+    padding-left: 0;
+}
+
+.category-link {
+    color: #495057;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.category-link:hover {
+    color: #007bff;
+    text-decoration: none;
+    transform: translateX(5px);
+}
+
+.category-link.bg-primary {
+    color: white;
+}
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+    .category-tree {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .sticky-top {
+        position: static !important;
+        top: 0 !important;
+    }
+    
+    .category-tree {
+        max-height: none;
+    }
+}
+
+#videoPlayerModal .video-container {
+    min-height: 40vh;
+}
+}
+</style>
+
+{% endblock %}

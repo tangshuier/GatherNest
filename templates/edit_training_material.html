@@ -1,0 +1,421 @@
+{% extends 'base.html' %}
+
+{% block title %}编辑培训资料 - 管理员面板{% endblock %}
+{% block page_title %}编辑培训资料{% endblock %}
+
+{% block content %}
+<div class="container mt-6">
+    <div class="card shadow-lg p-6 mb-6 bg-white rounded border border-gray-100">
+        <h2 class="text-primary mb-6">编辑培训资料</h2>
+        
+        <form action="{{ url_for('training.edit_training_material', material_id=material.id) }}" method="post" enctype="multipart/form-data">
+            <!-- 类别选择 -->
+            <div class="form-group mb-5">
+                <label for="category" class="form-label font-weight-medium text-gray-700 mb-2">培训类别 <span class="text-danger">*</span></label>
+                <select class="form-control form-control-lg border-gray-300 rounded-md transition-all duration-200 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20" id="category" name="category" required>
+                    <option value="">请选择类别</option>
+                    {% for category in categories %}
+                        <option value="{{ category }}" {% if category == material.category %}selected{% endif %}>{{ category }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-gray-500 mt-1">选择最适合该培训资料的分类</small>
+            </div>
+            
+            <!-- 标题 -->
+            <div class="form-group mb-5">
+                <label for="title" class="form-label font-weight-medium text-gray-700 mb-2">资料标题 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-lg border-gray-300 rounded-md transition-all duration-200 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20" id="title" name="title" value="{{ material.title }}" required placeholder="输入资料标题">
+                <small class="form-text text-gray-500 mt-1">请输入明确的资料标题，便于学员识别</small>
+            </div>
+            
+            <!-- 描述 -->
+            <div class="form-group mb-5">
+                <label for="description" class="form-label font-weight-medium text-gray-700 mb-2">资料描述</label>
+                <textarea class="form-control form-control-lg border-gray-300 rounded-md transition-all duration-200 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20" id="description" name="description" rows="4" placeholder="输入资料描述">{{ material.description }}</textarea>
+                <small class="form-text text-gray-500 mt-1">简要描述该培训资料的内容和用途</small>
+            </div>
+            
+            <!-- 文件类型 -->
+            <div class="form-group mb-5">
+                <label for="file_type" class="form-label font-weight-medium text-gray-700 mb-2">文件类型 <span class="text-danger">*</span></label>
+                <select class="form-control form-control-lg border-gray-300 rounded-md transition-all duration-200 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20" id="file_type" name="file_type" required>
+                    <option value="pdf" {% if material.file_type == 'pdf' %}selected{% endif %}>📄 PDF文档</option>
+                    <option value="docx" {% if material.file_type == 'docx' %}selected{% endif %}>📝 Word文档</option>
+                    <option value="xlsx" {% if material.file_type == 'xlsx' %}selected{% endif %}>📊 Excel表格</option>
+                    <option value="pptx" {% if material.file_type == 'pptx' %}selected{% endif %}>🎞️ PowerPoint演示文稿</option>
+                    <option value="mp4" {% if material.file_type == 'mp4' %}selected{% endif %}>🎬 MP4视频</option>
+                    <option value="avi" {% if material.file_type == 'avi' %}selected{% endif %}>🎬 AVI视频</option>
+                    <option value="mov" {% if material.file_type == 'mov' %}selected{% endif %}>🎬 MOV视频</option>
+                    <option value="wmv" {% if material.file_type == 'wmv' %}selected{% endif %}>🎬 WMV视频</option>
+                    <option value="txt" {% if material.file_type == 'txt' %}selected{% endif %}>📄 文本文件</option>
+                    <option value="md" {% if material.file_type == 'md' %}selected{% endif %}>📝 Markdown文件</option>
+                    <option value="other" {% if material.file_type == 'other' %}selected{% endif %}>📎 其他类型</option>
+                </select>
+                <small class="form-text text-gray-500 mt-1">请选择您要上传的文件格式</small>
+            </div>
+            
+            <!-- 是否必学 -->
+            <div class="form-group mb-5">
+                <div class="form-check p-3 bg-gray-50 rounded-md border border-gray-200 transition-all duration-200 hover:bg-gray-100">
+                    <input class="form-check-input h-5 w-5 text-primary rounded transition-transform duration-200 hover:scale-110 focus:ring-primary/30" type="checkbox" id="is_required" name="is_required" {% if material.is_required %}checked{% endif %}>
+                    <label class="form-check-label text-gray-700 ml-2 font-medium cursor-pointer" for="is_required">
+                        必学资料
+                    </label>
+                    <small class="form-text text-gray-500 block mt-1 ml-7">标记为必学资料的内容，所有相关学员都需要完成学习</small>
+                </div>
+            </div>
+            
+            <!-- 显示顺序 -->
+            <div class="form-group mb-5">
+                <label for="display_order" class="form-label font-weight-medium text-gray-700 mb-2">显示顺序</label>
+                <input type="number" class="form-control form-control-lg border-gray-300 rounded-md transition-all duration-200 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20" id="display_order" name="display_order" value="{{ material.display_order }}" min="0">
+                <small class="form-text text-gray-500 mt-1">数值越小，该资料在列表中显示的位置越靠前</small>
+            </div>
+            
+            <!-- 当前文件 -->
+            {% if material.file_path %}
+            <div class="form-group mb-5">
+                <label class="form-label font-weight-medium text-gray-700 mb-2">当前文件</label>
+                <div class="alert alert-info">
+                    <i class="fas fa-file"></i> {{ material.file_path.split('/')[-1] }}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- 文件上传 -->
+            <div class="form-group mb-6">
+                <label for="file" class="form-label font-weight-medium text-gray-700 mb-2">上传新文件</label>
+                <div class="p-4 border-2 border-dashed border-gray-300 rounded-lg transition-all duration-200 hover:border-primary hover:bg-primary/5">
+                    <input type="file" class="form-control-file" id="file" name="file">
+                    <small class="form-text text-gray-500 mt-2">支持的文件格式：PDF, Word, Excel, PowerPoint, MP4, AVI, MOV, WMV, Markdown等</small>
+                    {% if material.file_path %}
+                    <small class="form-text text-danger block mt-1">注意：上传新文件将替换现有文件</small>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="form-group d-flex justify-content-center gap-4">
+                <button type="submit" class="btn btn-primary btn-lg px-6 py-2 transition-all duration-200 hover:bg-primary/90 hover:shadow-lg transform hover:-translate-y-0.5">
+                    <i class="fas fa-save mr-2"></i> 保存修改
+                </button>
+                <a href="{{ url_for('training.training_materials_manage') }}" class="btn btn-secondary btn-lg px-6 py-2 transition-all duration-200 hover:bg-secondary/90 hover:shadow-lg transform hover:-translate-y-0.5">
+                    <i class="fas fa-arrow-left mr-2"></i> 返回
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* 表单相关样式 */
+    .form-group {
+        margin-bottom: 1.8rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control {
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-width: 1px;
+    }
+    
+    .form-control:focus {
+        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .font-weight-medium {
+        font-weight: 500;
+    }
+    
+    .text-gray-700 {
+        color: #374151;
+    }
+    
+    .text-gray-500 {
+        color: #6b7280;
+    }
+    
+    .mb-2 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control-lg {
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.375rem;
+    }
+    
+    .border-gray-300 {
+        border-color: #d1d5db;
+    }
+    
+    .bg-gray-50 {
+        background-color: #f9fafb;
+    }
+    
+    .bg-gray-100 {
+        background-color: #f3f4f6;
+    }
+    
+    .hover\:bg-primary\/5:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    .hover\:bg-primary\/90:hover {
+        background-color: rgba(0, 123, 255, 0.9);
+    }
+    
+    .hover\:bg-secondary\/90:hover {
+        background-color: rgba(108, 117, 125, 0.9);
+    }
+    
+    .hover\:shadow-lg:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .transition-all {
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+    
+    .transition-transform {
+        transition-property: transform;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+    
+    .duration-200 {
+        transition-duration: 200ms;
+    }
+    
+    .hover\:-translate-y-0\.5:hover {
+        transform: translateY(-0.125rem);
+    }
+    
+    .hover\:scale-110:hover {
+        transform: scale(1.1);
+    }
+    
+    .rounded-md {
+        border-radius: 0.375rem;
+    }
+    
+    .transition-all {
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .duration-200 {
+        transition-duration: 200ms;
+    }
+    
+    .hover\:border-primary:hover {
+        border-color: #1e40af;
+    }
+    
+    .focus\:border-primary:focus {
+        border-color: #1e40af;
+    }
+    
+    .focus\:ring-2:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 2px currentColor;
+    }
+    
+    .focus\:ring-primary\/20:focus {
+        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.2);
+    }
+    
+    .focus\:ring-primary\/30:focus {
+        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.3);
+    }
+    
+    /* 为表单添加内边距，确保内容不紧贴边缘 */
+    form {
+        padding: 1rem;
+    }
+    
+    /* 确保form-group有左右边距，防止控件紧贴外框 */
+    .form-group {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+    
+    /* 为卡片内的内容添加内边距 */
+    .card > h2 {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+    
+    .mt-1 {
+        margin-top: 0.25rem;
+    }
+    
+    .mt-2 {
+        margin-top: 0.5rem;
+    }
+    
+    .mb-5 {
+        margin-bottom: 1.25rem;
+    }
+    
+    .mb-6 {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* 复选框样式 */
+    .bg-gray-50 {
+        background-color: #f9fafb;
+    }
+    
+    .border-gray-200 {
+        border-color: #e5e7eb;
+    }
+    
+    .hover\:bg-gray-100:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .h-5 {
+        height: 1.25rem;
+    }
+    
+    .w-5 {
+        width: 1.25rem;
+    }
+    
+    .text-primary {
+        color: #1e40af;
+    }
+    
+    .rounded {
+        border-radius: 0.25rem;
+    }
+    
+    .transition-transform {
+        transition-property: transform;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .hover\:scale-110:hover {
+        transform: scale(1.1);
+    }
+    
+    .focus\:ring-primary\/30:focus {
+        --tw-ring-color: rgba(30, 64, 175, 0.3);
+        ring-color: var(--tw-ring-color);
+    }
+    
+    .ml-2 {
+        margin-left: 0.5rem;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .block {
+        display: block;
+    }
+    
+    .ml-7 {
+        margin-left: 1.75rem;
+    }
+    
+    /* 文件上传区域 */
+    .border-2 {
+        border-width: 2px;
+    }
+    
+    .border-dashed {
+        border-style: dashed;
+    }
+    
+    .rounded-lg {
+        border-radius: 0.5rem;
+    }
+    
+    .hover\:border-primary:hover {
+        border-color: #1e40af;
+    }
+    
+    .hover\:bg-primary\/5:hover {
+        background-color: rgba(30, 64, 175, 0.05);
+    }
+    
+    /* 按钮样式 */
+    .d-flex {
+        display: flex;
+    }
+    
+    .justify-content-center {
+        justify-content: center;
+    }
+    
+    .gap-4 {
+        gap: 1rem;
+    }
+    
+    .btn-lg {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+    }
+    
+    .px-6 {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    
+    .py-2 {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+    
+    .justify-content-center {
+        justify-content: center;
+    }
+    
+    .gap-4 {
+        gap: 1rem;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .block {
+        display: block;
+    }
+    
+    .w-5 {
+        width: 1.25rem;
+    }
+    
+    .h-5 {
+        height: 1.25rem;
+    }
+    
+    .mr-2 {
+        margin-right: 0.5rem;
+    }
+    
+    .px-6 {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    
+    .py-2 {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}

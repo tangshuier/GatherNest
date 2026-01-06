@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}视频管理 - 管理员专区{% endblock %}
+{% block page_title %}视频管理{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-md p-8 mb-6 bg-white rounded">
+        <h2 class="text-center mb-4">视频上传与管理</h2>
+        
+        <!-- 视频上传表单 -->
+        <div class="mb-6">
+            <h3 class="text-primary mb-3">上传新视频</h3>
+            <form method="post" enctype="multipart/form-data" class="mb-4">
+                {{ form.hidden_tag() if form else '' }}
+                <div class="form-group">
+                    <label for="video_file">选择视频文件</label>
+                    <input type="file" class="form-control-file" id="video_file" name="video_file" 
+                           accept=".mp4,.avi,.mov,.wmv" required>
+                    <small class="form-text text-muted">支持的格式: MP4, AVI, MOV, WMV</small>
+                </div>
+                <button type="submit" class="btn btn-primary">上传视频</button>
+            </form>
+        </div>
+        
+        <!-- 已上传视频列表 -->
+        <div>
+            <h3 class="text-primary mb-3">已上传视频</h3>
+            {% if videos %}
+                <div class="p-3">
+                    <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">文件名</th>
+                            <th scope="col">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                            <tr>
+                                <td>{{ video }}</td>
+                                <td>
+                                    <a href="{{ url_for('video.serve_video', filename=video) }}" 
+                                       class="btn btn-sm btn-info mr-2" target="_blank">查看</a>
+                                    <a href="{{ url_for('video.delete_video', filename=video) }}" 
+                                       class="btn btn-sm btn-danger" 
+                                       onclick="return confirm('确定要删除这个视频吗？');">删除</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    暂无上传的视频文件
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <style>
+        /* 进一步优化内边距和间距 */
+        .card { 
+            margin-bottom: 2rem; 
+            padding: 40px !important;
+        }
+        
+        .mb-6 { 
+            margin-bottom: 2rem;
+        }
+        
+        .table {
+            width: 100%;
+            margin-bottom: 1.5rem;
+        }
+        
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            vertical-align: middle;
+        }
+        
+        .alert {
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .text-center {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        /* 为视频列表添加额外的容器样式 */
+        .p-3 {
+            padding: 15px !important;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+    </style>
+</div>
+{% endblock %}

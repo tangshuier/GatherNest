@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1>修改项目文档 - {{ project.name }}</h1>
+  
+  {% if project.document %}
+  <div class="alert alert-info mt-3">
+    <p>当前文档: <a href="{{ url_for('document_viewer.view_document', document_id=project.documents[0].id) }}">{{ project.documents[0].filename }}</a></p>
+    <p class="text-warning">注意: 上传新文档将替换现有文档</p>
+  </div>
+  {% endif %}
+  
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="document">上传新文档</label>
+      <input type="file" class="form-control-file" id="document" name="document" required>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">更新文档</button>
+  </form>
+</div>
+{% endblock %}

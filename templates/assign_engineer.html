@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-md">
+    <div class="card-header bg-primary text-white">
+      <h2 class="h5 mb-0">分配工程师 - {{ project.name }}</h2>
+    </div>
+    <div class="card-body p-6">
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label for="engineer">选择工程师</label>
+          <select class="form-control" id="engineer" name="engineer_id" required>
+            <option value="">请选择</option>
+            {% for engineer in engineers %}
+            <option value="{{ engineer.id }}">{{ engineer.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">分配</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

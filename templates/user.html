@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="section fade-in">
+    <!-- 添加搜索表单 -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>我的任务</h2>
+        <form method="GET" action="/user" style="display: flex; gap: 10px;">
+            <input type="text" name="search" placeholder="搜索产品名称..." 
+                   value="{{ request.args.get('search', '') }}"
+                   style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; min-width: 200px;">
+            <button type="submit" style="padding: 8px 16px;">
+                <i class="fas fa-search"></i>
+            </button>
+            <a href="/user">
+                <button type="button" style="padding: 8px 16px;">
+                    <i class="fas fa-sync"></i>
+                </button>
+            </a>
+        </form>
+    </div>
+    
+    <div style="overflow-x: auto;">
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>产品名称</th>
+                <th>价格</th>
+                <th>分配时间</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+            {% for product in products %}
+            {% if not request.args.get('search') or request.args.get('search') in product.name %}
+            <tr>
+                <td>{{ product.id }}</td>
+                <td>{{ product.name }}</td>
+                <td>
+                  {% if product.images %}
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 80px;">
+                    {% for image in product.images %}
+                    <a href="/{{ image.filepath.replace('\\', '/') }}" target="_blank" title="点击查看大图">
+                      <img src="/{{ image.filepath.replace('\\', '/') }}" alt="产品图片" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;">
+                    </a>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  无
+                  {% endif %}
+                </td>
+                <td>{{ "%.2f"|format(product.price) if product.price else '未定价' }}</td>
+                <td>{{ product.assigned_time.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <span class="status-badge {% if product.status == 'completed' %}status-completed{% else %}status-in-progress{% endif %}">
+                      {{ '已完成' if product.status == 'completed' else '进行中' }}
+                      {% if product.status == 'completed' and product.completed_time %}
+                      <br>({{ product.completed_time.strftime('%Y-%m-%d') }})
+                      {% endif %}
+                    </span>
+                </td>
+                <td>
+                    {% if product.status == 'completed' %}
+                    <!-- 取消完成按钮 -->
+                    <form method="POST" action="/unmark_project_completed" style="display: inline;">
+                        <input type="hidden" name="project_id" value="{{ product.id }}">
+                        <button type="submit" class="btn-warning" onclick="return confirm('确定要取消完成状态吗？')">
+                            <i class="fas fa-undo"></i> 取消完成
+                        </button>
+                    </form>
+                    {% else %}
+                    <!-- 标记完成按钮 -->
+                    <form method="POST" action="/mark_project_completed" style="display: inline;">
+                          <input type="hidden" name="project_id" value="{{ product.id }}">
+                        <button type="submit" class="btn-success" onclick="return confirm('确定要标记为已完成吗？')">
+                            <i class="fas fa-check"></i> 标记完成
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+            {% else %}
+            <tr>
+                <td colspan="6" class="no-data">
+                    {% if request.args.get('search') %}
+                    没有找到匹配"{{ request.args.get('search') }}"的产品
+                    {% else %}
+                    暂无任务，请联系管理员分派任务
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<style>
+    /* 容器样式 */
+    .section {
+        padding: 25px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* 状态标签样式 */
+    .status-badge {
+        padding: 3px 8px;
+        border-radius: 4px;
+        color: white;
+        display: inline-block;
+    }
+    
+    .status-completed {
+        background-color: #10b981; /* 已完成 - 绿色 */
+    }
+    
+    .status-in-progress {
+        background-color: #f59e0b; /* 进行中 - 橙色 */
+    }
+    
+    /* 按钮样式 */
+    .btn-success {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    
+    .btn-warning {
+        background: #f59e0b;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    
+    /* 动画样式 */
+    .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+        from { 
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to { 
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* 无数据提示 */
+    .no-data {
+        text-align: center;
+        color: #666;
+        padding: 30px;
+    }
+</style>
+{% endblock %}
+    

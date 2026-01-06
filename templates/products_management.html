@@ -1,0 +1,491 @@
+{% extends 'base.html' %}
+
+{% block title %}项目操作 - 项目管理系统{% endblock %}
+{% block page_title %}项目管理 - 项目操作{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <!-- 产品列表搜索和筛选 -->
+  <div class="card mb-6">
+    <div class="card-header bg-primary text-white">
+      <h2 class="h5 mb-0">项目列表</h2>
+    </div>
+    <div class="card-body">
+      <form method="get" action="{{ url_for('project.projects_management') }}" class="row g-3">
+        <div class="col-md-3">
+          <label for="searchInput" class="form-label">搜索项目</label>
+          <input type="text" class="form-control" id="searchInput" name="search" value="{{ search_query }}" placeholder="输入项目名称或ID">
+        </div>
+        <div class="col-md-3">
+          <label for="engineerFilter" class="form-label">选择工程师</label>
+          <!-- 调试信息 -->
+          <div class="text-muted mb-2">工程师数量: {{ engineers|length }}</div>
+          <select class="form-control" id="engineerFilter" name="engineer_id">
+            <option value="">全部工程师</option>
+            {% if engineers %}
+              {% for engineer in engineers %}
+                {% if engineer.user %}
+                <option value="{{ engineer.id }}" {% if engineer_id|string == engineer.id|string %}selected="selected"{% endif %}>{{ engineer.name if engineer.name else engineer.user.username }}</option>
+                {% else %}
+                <option value="{{ engineer.id }}" disabled>工程师(ID:{{ engineer.id }}，无用户关联)</option>
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              <option value="">无工程师数据</option>
+            {% endif %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="productTypeFilter" class="form-label">项目类型</label>
+          <select class="form-control" id="productTypeFilter" name="project_type">
+            <option value="custom" {% if product_type == 'custom' %}selected{% endif %}>定制项目</option>
+              <option value="finished" {% if product_type == 'finished' %}selected{% endif %}>成品项目</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="progressFilter" class="form-label">进度状态</label>
+          <select class="form-control" id="progressFilter" name="progress">
+            <option value="">全部进度</option>
+            <option value="无方案" {% if progress == '无方案' %}selected{% endif %}>无方案</option>
+            <option value="方案未确认" {% if progress == '方案未确认' %}selected{% endif %}>方案未确认</option>
+            <option value="需要方案" {% if progress == '需要方案' %}selected{% endif %}>需要方案</option>
+            <option value="确认方案不制作" {% if progress == '确认方案不制作' %}selected{% endif %}>确认方案不制作</option>
+            <option value="待制作" {% if progress == '待制作' %}selected{% endif %}>待制作</option>
+            <option value="制作中" {% if progress == '制作中' %}selected{% endif %}>制作中</option>
+            <option value="完成待确认" {% if progress == '完成待确认' %}selected{% endif %}>完成待确认</option>
+            <option value="已完成" {% if progress == '已完成' %}selected{% endif %}>已完成</option>
+            <option value="结单" {% if progress == '结单' %}selected{% endif %}>结单</option>
+            <option value="确认不发货" {% if progress == '确认不发货' %}selected{% endif %}>确认不发货</option>
+            <option value="确认待发货" {% if progress == '确认待发货' %}selected{% endif %}>确认待发货</option>
+            <option value="售后修改" {% if progress == '售后修改' %}selected{% endif %}>售后修改</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">&nbsp;</label>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">筛选</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 产品列表表格 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h3 class="h5 mb-0">项目信息</h3>
+        <div>
+          <a href="/products/add" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 添加项目
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      {% if products %}
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>项目ID</th>
+              <th style="max-width: 120px; white-space: nowrap;">项目名称</th>
+              <th>产品描述</th>
+              <th>文档</th>
+              <th>图片</th>
+              <th>进度</th>
+              <th>产品类型</th>
+              {% if product_type == 'custom' %}
+              <th style="max-width: 100px; white-space: nowrap;">群名</th>
+              {% endif %}
+              <th>价格信息</th>
+              <th>分配工程师</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product in products %}
+            <tr>
+              <td>{{ product.id }}</td>
+              <td style="max-width: 150px; white-space: normal; word-wrap: break-word; max-height: 60px; overflow-y: auto; cursor: help;" title="{{ product.name }}">
+                {{ product.name }}
+              </td>
+              <td style="max-width: 250px; white-space: normal; word-wrap: break-word; max-height: 60px; overflow-y: auto;" title="{{ product.requirements or '无描述' }}">
+                {{ product.requirements or '无描述' }}
+              </td>
+              <td>
+                {% if product.documents %}
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-info dropdown-toggle" type="button" id="docDropdown{{ product.id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {{ product.documents|length }} 个文档
+                  </button>
+                  <div class="dropdown-menu" aria-labelledby="docDropdown{{ product.id }}">
+                    {% for doc in product.documents %}
+                    {% if doc.type == 'document' or doc.type == 'engineering_zip' %}
+<a href="{{ url_for('document_viewer.view_document', document_id=doc.id) }}" class="dropdown-item" target="_blank">
+    <i class="fa fa-eye"></i> 查看文档
+</a>
+{% endif %}
+<a href="{{ url_for('project.download_document', document_id=doc.id) }}" class="dropdown-item" download>
+    <i class="fa fa-download"></i> 下载文档
+</a>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% else %}
+                无文档
+                {% endif %}
+              </td>
+              <td>
+                {% if product.images %}
+                <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                  {% for image in product.images %}
+                  <div style="position: relative; display: inline-block;">
+                    <img src="/{{ image.filepath.replace('\\', '/') }}" alt="产品图片" class="product-image-thumbnail" data-src="/{{ image.filepath.replace('\\', '/') }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;">
+                  </div>
+                  {% endfor %}
+                </div>
+                {% else %}
+                无
+                {% endif %}
+              </td>
+              <td>
+                {% if product.progress %}
+                <span class="progress-badge" data-id="{{ product.id }}" data-current="{{ product.progress }}" style="display: inline-block; padding: 0.25em 0.4em; font-size: 75%; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; vertical-align: baseline; border-radius: 0.25rem; cursor: pointer;{% if product.progress in ['无方案', '方案未确认', '需要方案'] %} background-color: #ffc107; color: #212529;{% elif product.progress in ['确认方案不制作'] %} background-color: #dc3545; color: #fff;{% elif product.progress in ['待制作'] %} background-color: #007bff; color: #fff;{% elif product.progress in ['制作中', '完成待确认'] %} background-color: #17a2b8; color: #fff;{% elif product.progress in ['已完成', '结单'] %} background-color: #28a745; color: #fff;{% elif product.progress in ['确认不发货', '确认待发货', '售后修改'] %} background-color: #6c757d; color: #fff;{% endif %}">
+                  {{ product.progress }}
+                </span>
+                {% else %}
+                <span class="progress-badge" data-id="{{ product.id }}" data-current="" style="display: inline-block; padding: 0.25em 0.4em; font-size: 75%; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; vertical-align: baseline; border-radius: 0.25rem; cursor: pointer; background-color: #6c757d; color: #fff;">
+                  设置进度
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge {% if product.product_type == 'custom' %}badge-primary{% else %}badge-success{% endif %}">
+                  {{ '定制' if product.product_type == 'custom' else '成品' }}
+                </span>
+              </td>
+              {% if product_type == 'custom' %}
+              <td style="max-width: 120px; white-space: normal; word-wrap: break-word; max-height: 60px; overflow-y: auto; cursor: help;" title="{{ product.group_name or '-' }}">
+                {{ product.group_name or '-' }}
+              </td>
+              {% endif %}
+              <td>
+                {% if product.product_type == 'custom' %}
+                <div>总价: {{ "¥%.2f"|format(product.price) if product.price is not none else "未设置" }}</div>
+                <div>成本: {{ "¥%.2f"|format(product.cost) if product.cost is not none else "未设置" }}</div>
+                <div>单价: {{ "¥%.2f"|format(product.unit_price) if product.unit_price is not none else "未设置" }}</div>
+                {% else %}
+                {{ "¥%.2f"|format(product.price) if product.price is not none else "未设置" }}
+                {% endif %}
+              </td>
+              <td>{{ product.assigned_engineer.name if product.assigned_engineer else '未分配' }}</td>
+              <td>{{ (product.created_time + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>
+                <div class="btn-group" role="group">
+                  <button class="btn btn-sm btn-secondary edit-product" data-id="{{ product.id }}">编辑</button>
+                  <button class="btn btn-sm btn-danger delete-product" data-id="{{ product.id }}">删除</button>
+                  {% if product.documents %}
+                  <a href="{{ url_for('project.download_document', document_id=product.documents[0].id) }}" class="btn btn-sm btn-info">下载文档</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 分页控件 -->
+      <nav aria-label="产品分页" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if current_page > 1 %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ current_page - 1 }}{% if search_query %}&search={{ search_query }}{% endif %}{% if engineer_id %}&engineer_id={{ engineer_id }}{% endif %}{% if product_type %}&product_type={{ product_type }}{% endif %}{% if progress %}&progress={{ progress }}{% endif %}" aria-label="上一页">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% endif %}
+          
+          {% for page_num in range(1, total_pages + 1) %}
+          <li class="page-item {% if page_num == current_page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('project.projects_management', page=page_num, search=search_query, engineer_id=engineer_id, project_type=product_type, progress=progress) }}">{{ page_num }}</a>
+          </li>
+          {% endfor %}
+          
+          {% if current_page < total_pages %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('project.projects_management', page=current_page + 1, search=search_query, engineer_id=engineer_id, project_type=product_type, progress=progress) }}" aria-label="下一页">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+        <div class="text-center mt-2">
+          <p class="text-muted">显示 {{ (current_page - 1) * per_page + 1 }} 到 {{ (current_page * per_page) if (current_page * per_page < total_projects) else total_projects }} 条，共 {{ total_projects }} 条记录</p>
+          <div class="d-inline-flex">
+            <form method="get" action="{{ url_for('project.projects_management') }}" class="form-inline">
+              <input type="hidden" name="search" value="{{ search_query }}">
+              <input type="hidden" name="engineer_id" value="{{ engineer_id }}">
+              <input type="hidden" name="project_type" value="{{ product_type }}">
+              <div class="input-group">
+                <select class="form-control" name="per_page" onchange="this.form.submit()">
+                  <option value="10" {% if per_page == 10 %}selected{% endif %}>10条/页</option>
+                  <option value="20" {% if per_page == 20 %}selected{% endif %}>20条/页</option>
+                  <option value="50" {% if per_page == 50 %}selected{% endif %}>50条/页</option>
+                </select>
+              </div>
+            </form>
+          </div>
+        </div>
+      </nav>
+      {% else %}
+      <div class="no-data">
+        <p>暂无项目数据</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- 图片查看模态框 -->
+<div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="imageModalLabel">产品图片</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="关闭">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <img id="modalImage" src="" alt="产品大图" style="max-width: 100%; max-height: 70vh; object-contain;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 进度修改模态框 -->
+<div class="modal" id="progressModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">修改项目进度</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="关闭">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="progressForm">
+          <input type="hidden" id="progressProjectId" name="project_id">
+          <div class="form-group">
+            <label for="newProgress">选择新进度</label>
+            <select class="form-control" id="newProgress" name="new_progress" required>
+              <option value="">请选择进度</option>
+              <option value="无方案">无方案</option>
+              <option value="需要方案">需要方案</option>
+              <option value="方案未确认">方案未确认</option>
+              <option value="确认方案不制作">确认方案不制作</option>
+              <option value="待制作">待制作</option>
+              <option value="制作中">制作中</option>
+              <option value="完成待确认">完成待确认</option>
+              <option value="确认不发货">确认不发货</option>
+              <option value="确认待发货">确认待发货</option>
+              <option value="已完成">已完成</option>
+              <option value="结单">结单</option>
+              <option value="售后修改">售后修改</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="saveProgress">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal" id="deleteModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">确认删除</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="关闭">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>确定要删除该项目吗？此操作不可恢复。</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+        <form id="deleteForm" method="post" action="/delete_product/">
+          <input type="hidden" name="project_id" id="deleteProjectId">
+          <button type="submit" class="btn btn-danger">删除</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 初始化删除确认模态框
+  document.addEventListener('DOMContentLoaded', function() {
+    const deleteButtons = document.querySelectorAll('.delete-product');
+    const deleteModal = document.getElementById('deleteModal');
+    const deleteProductId = document.getElementById('deleteProductId');
+    const closeButtons = deleteModal.querySelectorAll('.close, .btn-secondary');
+    const deleteForm = document.getElementById('deleteForm');
+    
+    deleteButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const projectId = this.getAttribute('data-id');
+        deleteProjectId.value = projectId;
+        deleteForm.action = '/delete_project/' + projectId;
+        deleteModal.classList.add('show');
+      });
+    });
+    
+    closeButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        deleteModal.classList.remove('show');
+      });
+    });
+    
+    // 点击模态框外部关闭
+    deleteModal.addEventListener('click', function(e) {
+      if (e.target === deleteModal) {
+        deleteModal.classList.remove('show');
+      }
+    });
+    
+    // 处理表单提交，使用AJAX方式提交
+    deleteForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const productId = deleteProductId.value;
+      
+      // 发送AJAX请求删除产品
+      $.ajax({
+        url: '/delete_product/' + productId,
+        type: 'POST',
+        data: {
+          csrf_token: '{{ csrf_token() }}'
+        },
+        success: function(response) {
+          if (response.success) {
+            // 关闭模态框
+            deleteModal.classList.remove('show');
+            // 刷新页面以更新产品列表
+            location.reload();
+          } else {
+            alert('删除失败: ' + response.error);
+          }
+        },
+        error: function(xhr) {
+          alert('删除失败，请重试');
+        }
+      });
+    });
+    
+    // 确保页面中的其他删除按钮也能正常工作
+    $(document).on('click', '.delete-product', function(e) {
+      e.preventDefault();
+      const projectId = $(this).data('id');
+      const productRow = $(this).closest('tr');
+      const productName = productRow.find('td:nth-child(2)').text().trim();
+      
+      if (confirm(`确定要删除项目 "${productName}" 及其所有文档吗？此操作不可撤销！`)) {
+        $.post(`/delete_project/${projectId}`, {
+          csrf_token: '{{ csrf_token() }}'
+        }).done(function(response) {
+          if (response.success) {
+            location.reload();
+          } else {
+            alert('删除失败: ' + response.error);
+          }
+        }).fail(function() {
+          alert('删除失败，请重试');
+        });
+      }
+    });
+    
+    // 编辑产品按钮点击事件
+    $(document).on('click', '.edit-product', function(e) {
+      e.preventDefault();
+      const productId = $(this).data('id');
+      // 跳转到添加产品页面并带上产品ID参数
+      window.location.href = '/products/add?edit=' + productId;
+    });
+    
+    // 进度修改功能
+    $(document).on('click', '.progress-badge', function() {
+      const projectId = $(this).data('id');
+      const currentProgress = $(this).data('current');
+      
+      // 设置模态框中的值
+      $('#progressProjectId').val(projectId);
+      $('#newProgress').val(currentProgress);
+      
+      // 显示模态框
+      $('#progressModal').modal('show');
+    });
+    
+    // 保存进度按钮点击事件
+    $('#saveProgress').on('click', function() {
+      const projectId = $('#progressProjectId').val();
+      const newProgress = $('#newProgress').val();
+      
+      if (!newProgress) {
+        alert('请选择进度');
+        return;
+      }
+      
+      // 发送AJAX请求更新进度
+      $.ajax({
+        url: '/products/update_progress',
+        type: 'POST',
+        data: {
+          project_id: projectId,
+          new_progress: newProgress,
+          csrf_token: '{{ csrf_token() }}'
+        },
+        success: function(response) {
+          if (response.success) {
+            // 关闭模态框
+            $('#progressModal').modal('hide');
+            // 刷新页面以更新产品列表
+            location.reload();
+          } else {
+            alert('更新失败: ' + response.error);
+          }
+        },
+        error: function(xhr) {
+          alert('更新失败，请重试');
+        }
+      });
+    });
+    
+    // 确保选择框正确渲染
+    $(document).ready(function() {
+      // 刷新选择框以确保样式正确应用
+      $('#engineerFilter, #productTypeFilter').each(function() {
+        $(this).val($(this).val());
+      });
+    });
+    
+    // 图片查看功能
+    $(document).on('click', '.product-image-thumbnail', function() {
+      const imageSrc = $(this).data('src');
+      $('#modalImage').attr('src', imageSrc);
+      $('#imageModal').modal('show');
+    });
+
+  });
+  </script>
+{% endblock %}

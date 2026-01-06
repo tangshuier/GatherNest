@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}成品管理系统{% endblock %}
+{% block page_title %}修改超级管理员账号{% endblock %}
+
+{% block content %}
+<form method="POST" action="/edit_super_admin" style="max-width: 300px; margin: 20px auto;">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        <label>当前姓名:</label>
+        <input type="text" value="{{ form.new_name.data }}" disabled>
+    </div>
+    <div class="form-group">
+        <label>新姓名:</label>
+        {{ form.new_name(class='form-control') }}
+        {% for error in form.new_name.errors %}
+            <span class="text-danger">{{ error }}</span>
+        {% endfor %}
+    </div>
+    <div class="form-group">
+        <label>当前用户名:</label>
+        <input type="text" value="{{ form.new_username.data }}" disabled>
+    </div>
+    <div class="form-group">
+        <label>新用户名:</label>
+        {{ form.new_username(class='form-control') }}
+        {% for error in form.new_username.errors %}
+            <span class="text-danger">{{ error }}</span>
+        {% endfor %}
+        <small>用户名只能包含字母和数字</small>
+    </div>
+    <div class="form-group">
+        <label>新密码 (不修改请留空):</label>
+        {{ form.new_password(class='form-control') }}
+        {% for error in form.new_password.errors %}
+            <span class="text-danger">{{ error }}</span>
+        {% endfor %}
+        <small>密码长度不能少于8位</small>
+    </div>
+    <div style="text-align: center; margin-top: 1.5rem;">
+        {{ form.submit(class='btn-primary') }}
+        <a href="/admin">
+            <button type="button" class="btn-secondary">返回</button>
+        </a>
+    </div>
+</form>
+{% endblock %}

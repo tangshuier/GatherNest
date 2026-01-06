@@ -1,0 +1,786 @@
+{% extends 'base.html' %}
+
+{% block title %}项目列表 - 卡片视图{% endblock %}
+
+{% block page_title %}项目列表{% endblock %}
+
+{% block content %}
+<style>
+    /* 重置和基础样式 */
+    .project-grid {
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .project-grid > div {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        margin-bottom: 12px !important;
+        box-sizing: border-box;
+        min-width: 0; /* 确保内容不会溢出容器 */
+    }
+    
+    /* 标签样式 - 增大尺寸确保内容可见 */
+    .tag {
+        display: inline-block;
+        padding: 4px 6px;
+        margin: 0 4px 4px 0;
+        border-radius: 4px;
+        font-size: 11px;
+        background-color: #667eea;
+        color: white;
+        line-height: 1.4;
+        max-width: calc(100% - 8px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* 项目卡片样式 - 使用更灵活的宽度计算 */
+    .product-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        position: relative;
+        width: 100%;
+        min-width: 0; /* 确保内容不会溢出容器 */
+        min-height: 240px;
+        height: auto;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+        margin: 0 !important;
+        box-sizing: border-box;
+    }
+    
+    .product-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+        transform: translateY(-2px) !important;
+        border-color: #667eea;
+    }
+    
+    /* 卡片头部 - 商品标题区域 */
+    .product-card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 10px 12px;
+        flex-shrink: 0;
+    }
+    
+    .product-title {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.4;
+    }
+    
+    /* 卡片主体 - 项目信息 */
+    .product-card-body {
+        flex: 1;
+        padding: 10px 12px;
+        font-size: 12px !important;
+        overflow: hidden;
+    }
+    
+    /* 项目ID和类型 */
+    .project-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .project-id {
+        font-size: 12px;
+        color: #999;
+    }
+    
+    .project-type-badge {
+        font-size: 10px !important;
+        padding: 3px 8px !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        background: #f0f4ff;
+        color: #667eea;
+    }
+    
+    /* 项目信息行 - 自适应内容宽度 */
+    .product-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        line-height: 1.5;
+        width: 100%;
+        flex-wrap: nowrap;
+        min-width: 0;
+    }
+    
+    .product-info-label {
+        font-weight: 500;
+        color: #666;
+        font-size: 12px !important;
+        min-width: 50px;
+        flex: 0 0 auto; /* 自适应内容宽度 */
+        margin-right: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .product-info-value {
+        flex: 1; /* 剩余空间自适应 */
+        text-align: center;
+        font-size: 12px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.5;
+        min-width: 0;
+    }
+    
+    .price-value {
+        color: #ff4400 !important;
+        font-weight: 700;
+        font-size: 14px !important;
+    }
+    
+    /* 标签容器 - 优化布局 */
+    .tag-container {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 4px;
+        box-sizing: border-box;
+        justify-content: center;
+    }
+    
+    /* 日期信息 */
+    .product-date {
+        text-align: right;
+        font-size: 11px !important;
+        color: #999;
+        margin-top: 6px;
+    }
+    
+    /* 卡片底部 - 操作区 */
+    .product-card-footer {
+        background-color: #fafafa;
+        padding: 8px 10px;
+        border-top: 1px solid #f0f0f0;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    
+    /* 详情按钮 - 精简样式 */
+    .product-action-btn {
+        font-size: 11px !important;
+        padding: 6px 12px !important;
+        margin: 0 !important;
+        line-height: 1.5;
+        min-width: 60px;
+        width: 80%;
+        max-width: 100px;
+    }
+    
+    /* 复选框样式 */
+    .project-checkbox {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 12px !important;
+        height: 12px !important;
+        z-index: 10;
+        margin: 0 !important;
+    }
+    
+    /* 响应式网格布局 - 基于内容宽度自适应 */
+    @media (min-width: 0px) {
+        .project-item {
+            flex: 0 0 100%; /* 小屏单列显示 */
+            max-width: 100%;
+        }
+    }
+    
+    @media (min-width: 360px) {
+        .project-item {
+            flex: 0 0 50%; /* 小屏双列 */
+            max-width: 50%;
+        }
+    }
+    
+    @media (min-width: 640px) {
+        .project-item {
+            flex: 0 0 33.333333%; /* 中屏三列 */
+            max-width: 33.333333%;
+        }
+    }
+    
+    @media (min-width: 960px) {
+        .project-item {
+            flex: 0 0 25%; /* 大屏四列 */
+            max-width: 25%;
+        }
+    }
+    
+    @media (min-width: 1200px) {
+        .project-item {
+            flex: 0 0 20%; /* 超大屏五列 */
+            max-width: 20%;
+        }
+    }
+    
+    /* 确保项目网格容器是flex布局 */
+    .project-grid {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+    }
+    
+    /* 强制项目项为flex项 - 使用更灵活的布局 */
+    .project-item {
+        display: flex;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        margin-bottom: 12px !important;
+        box-sizing: border-box;
+        min-width: 0; /* 确保内容不会溢出容器 */
+        flex-basis: auto; /* 允许基于内容自动计算宽度 */
+    }
+    
+    /* 清除可能存在的默认边距 */
+    .card-body {
+        padding: 1rem !important;
+    }
+</style>
+
+<div class="section fade-in">
+    <div class="card mb-4">
+          <div class="card-header">
+              <div class="header-title">
+                  <h1 class="h2 mb-0">项目列表</h1>
+              </div>
+          </div>
+          <div class="card-body">
+            <!-- 消息提示 -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <!-- 筛选和搜索表单 -->
+            <div class="card mb-4">
+                <div class="card-body filter-form">
+                    <form class="filter-form" method="get" action="{{ url_for('project_management.projects_list') }}">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" placeholder="项目名称/描述搜索" name="search" value="{{ search_query }}">
+                            </div>
+                            {% if current_user.role == 'super_admin' %}
+                            <div class="col-md-3">
+                                <select class="form-select" name="engineer_id">
+                                    <option value="">选择工程师</option>
+                                    {% for engineer in engineers %}
+                                    <option value="{{ engineer.id }}" {% if engineer_id == engineer.id|string %}selected{% endif %}>{{ engineer.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% endif %}
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" placeholder="标签搜索" name="tag" value="{{ tag_search }}">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">搜索</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 项目列表操作栏 -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">项目信息</h5>
+                    <div class="d-flex align-items-center">
+                        <!-- 卡片视图显示 -->
+                        <span class="ml-2">
+                            <i class="fas fa-th-large text-secondary"></i>
+                        </span>
+                        
+                        {% if current_user.role == 'super_admin' %}
+                        <a href="{{ url_for('project_management.add_project') }}" class="btn btn-success ml-2">
+                            <i class="fas fa-plus"></i> 添加项目
+                        </a>
+                        <button class="btn btn-danger ml-2" type="button" data-toggle="modal" data-target="#batchDeleteModal" id="batchDeleteBtn" disabled>
+                            <i class="fas fa-trash-alt"></i> 批量删除
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 项目列表卡片 -->
+                <div class="card-body p-2">
+                    <!-- 淘宝京东式商品网格布局 -->
+                    <div class="project-grid">
+                        {% if projects %}
+                            {% for project in projects %}
+                                <!-- 商品式项目卡片 -->
+                                <div class="project-item">
+                                    <div class="product-card">
+                                        {% if current_user.role == 'super_admin' %}
+                                        <input type="checkbox" class="project-checkbox" value="{{ project.id }}">
+                                        {% endif %}
+                                        
+                                        <div class="product-card-header">
+                                            <h5 class="product-title">{{ project.name|truncate(12) }}</h5>
+                                        </div>
+                                        
+                                        <div class="product-card-body">
+                                            <div class="project-meta">
+                                                <span class="project-id">#{{ project.id }}</span>
+                                                <span class="project-type-badge">
+                                                    {{ '定制' if project.project_type == 'custom' else '成品' }}
+                                                </span>
+                                            </div>
+                                            
+                                            <div class="product-info">
+                                                <span class="product-info-label">价格:</span>
+                                                <span class="product-info-value price-value">
+                                                    {{ '￥{:.0f}'.format(project.price) if project.price else '-' }}
+                                                </span>
+                                            </div>
+                                            
+                                            <div class="product-info">
+                                                <span class="product-info-label">负责人:</span>
+                                                <span class="product-info-value">
+                                                    {{ project.assigned_engineer.name if project.assigned_engineer else '未分配' }}
+                                                </span>
+                                            </div>
+                                            
+                                            {% if project.tags %}
+                                            <div class="tag-container">
+                                                {% for tag in project.tags[:1] %}
+                                                    <span class="tag">{{ tag.name|truncate(3) }}</span>
+                                                {% endfor %}
+                                                {% if project.tags|length > 1 %}
+                                                    <span class="tag">+{{ project.tags|length - 1 }}</span>
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <div class="product-date">
+                                                {{ project.created_time.strftime('%m-%d') if project.created_time else '' }}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="product-card-footer">
+                                            <button class="btn btn-primary btn-sm product-action-btn view-project-details" type="button" data-project-id="{{ project.id }}">
+                                                详情
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            {% else %}
+                            <div class="col-12">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">
+                                        <i class="fas fa-folder-open"></i>
+                                    </div>
+                                    <h3 class="empty-state-title">暂无项目数据</h3>
+                                    <p class="empty-state-description">数据库中还没有创建任何项目</p>
+                                    {% if current_user.role == 'super_admin' or (current_user.role == 'engineer' and engineer) %}
+                                    <a href="{{ url_for('project_management.add_project') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus mr-2"></i> 添加第一个项目
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 分页 -->
+                {% if total > per_page %}
+                <div class="card-footer">
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination justify-content-center">
+                            {% if current_page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('project_management.projects_list', page=current_page-1, view='card', search=search_query, engineer_id=engineer_id, tag=tag_search) }}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in range(1, total_pages + 1) %}
+                            <li class="page-item {% if page_num == current_page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('project_management.projects_list', page=page_num, view='card', search=search_query, engineer_id=engineer_id, tag=tag_search) }}">{{ page_num }}</a>
+                            </li>
+                            {% endfor %}
+                            
+                            {% if current_page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('project_management.projects_list', page=current_page+1, view='card', search=search_query, engineer_id=engineer_id, tag=tag_search) }}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 更新批量删除按钮状态
+    function updateBatchDeleteButton() {
+        const checkedCount = $('.project-checkbox:checked').length;
+        $('#batchDeleteBtn').prop('disabled', checkedCount === 0);
+    }
+    
+    // 单个复选框变化时更新批量删除按钮状态
+    $(document).on('change', '.project-checkbox', function() {
+        updateBatchDeleteButton();
+    });
+    
+    // 绑定上传资料按钮事件
+    $(document).on('click', '.upload-materials-btn', function() {
+        const projectId = $(this).data('project-id');
+        const projectName = $(this).data('project-name');
+        openGlobalUploadModal(projectId, projectName);
+    });
+    
+    // 绑定查看资料按钮事件
+    $(document).on('click', '.view-materials-btn', function() {
+        const projectId = $(this).data('project-id');
+        const projectName = $(this).data('project-name');
+        openGlobalMaterialsModal(projectId, projectName);
+    });
+    
+    // 绑定删除项目按钮事件
+    $(document).on('click', '.delete-project-btn', function() {
+        const projectId = $(this).data('project-id');
+        const projectName = $(this).data('project-name');
+        confirmDelete(projectId, projectName);
+    });
+    
+    // 使用jQuery的事件委托处理项目详情按钮点击
+    $(document).on('click', '.view-project-details', function() {
+        var projectId = parseInt($(this).data('project-id'));
+        if (typeof window.showProjectDetails === 'function') {
+            try {
+                window.showProjectDetails(projectId);
+            } catch (error) {
+                console.error('显示项目详情时出错:', error);
+                alert('无法显示项目详情，请稍后再试。');
+            }
+        } else {
+            console.warn('项目详情函数不可用');
+            alert('项目详情功能暂不可用，请刷新页面后重试。');
+        }
+    });
+    
+    // 页面加载完成后初始化
+    $(document).ready(function() {
+        updateBatchDeleteButton();
+    });
+    </script>
+    
+    <!-- 项目详情模态框 -->
+    <div>
+        <div id="projectDetailsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="projectDetailsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                        <h5 class="modal-title" id="projectDetailsModalLabel">项目详情</h5>
+                        <button type="button" class="close text-white" onclick="closeProjectDetails()" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="container">
+                            <!-- 项目名称和ID区域 -->
+                            <div class="mb-4 text-center">
+                                <h3 class="mb-2" id="projectDetailName">项目名称</h3>
+                                <p class="text-muted" id="projectDetailId">ID: </p>
+                            </div>
+                            
+                            <!-- 项目信息表格 -->
+                            <table class="table table-bordered table-hover">
+                                <tbody>
+                                    <tr>
+                                        <td class="font-weight-bold">项目类型</td>
+                                        <td id="projectDetailType">未设置</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">项目价格</td>
+                                        <td id="projectDetailPrice">未设置</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">项目成本</td>
+                                        <td id="projectDetailCost">未设置</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">项目单价</td>
+                                        <td id="projectDetailUnitPrice">未设置</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">项目负责人</td>
+                                        <td id="projectDetailEngineer">未分配</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">所属群组</td>
+                                        <td id="projectDetailGroup">未设置</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">项目标签</td>
+                                        <td id="projectDetailTags"><div class="d-flex flex-wrap gap-2"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">创建时间</td>
+                                        <td id="projectDetailTime"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- 论文资料和项目资料展示区域 -->
+                        <div class="card mt-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">项目资料</h5>
+                            </div>
+                            <div class="card-body">
+                        <!-- 论文资料 -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="font-weight-bold mb-0">论文资料</h6>
+                                    <button id="uploadPaperBtn" class="btn btn-sm btn-info">
+                                        <i class="fas fa-upload"></i> 上传论文
+                                    </button>
+                                </div>
+                                <div id="projectDetailPapers" class="ml-2">
+                                    <span class="text-muted">暂无论文资料</span>
+                                </div>
+                            </div>
+                        <!-- 项目资料 -->
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="font-weight-bold mb-0">项目资料</h6>
+                                    <button id="uploadMaterialBtn" class="btn btn-sm btn-info">
+                                        <i class="fas fa-upload"></i> 上传资料
+                                    </button>
+                                </div>
+                                <div id="projectDetailMaterials" class="ml-2">
+                                    <span class="text-muted">暂无项目资料</span>
+                                </div>
+                            </div>
+                            
+                            <script>
+                            // 处理上传论文按钮点击事件
+                            $('#uploadPaperBtn').click(function() {
+                                const projectId = $('#projectDetailId').text().split(': ')[1];
+                                window.location.href = '/project_management/upload_materials/' + projectId + '?type=paper';
+                            });
+                            
+                            // 处理上传项目资料按钮点击事件
+                            $('#uploadMaterialBtn').click(function() {
+                                const projectId = $('#projectDetailId').text().split(': ')[1];
+                                window.location.href = '/project_management/upload_materials/' + projectId + '?type=material';
+                            });
+                            </script>
+                            </div>
+                        </div>
+                </div>
+                    <div class="modal-footer">
+                        <a id="editProjectLink" href="" class="btn btn-primary mr-2">编辑项目</a>
+                        {% if current_user.role == 'super_admin' %}
+                        <button id="deleteProjectBtn" type="button" class="btn btn-danger mr-2">删除项目</button>
+                        {% endif %}
+                        <button type="button" class="btn btn-secondary" onclick="closeProjectDetails()">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 模态框背景遮罩 -->
+        <div id="modalBackdrop" class="modal-backdrop fade" style="display: none;"></div>
+    </div>
+    
+    <script>
+        // 设置当前用户角色标志
+        window.isSuperAdmin = {{ current_user.role == 'super_admin'|tojson|lower }};
+        
+        // 页面加载时检查URL参数，如果有project_id则自动显示项目详情
+        $(document).ready(function() {
+            // 获取URL中的project_id参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('project_id');
+            
+            // 如果URL中包含project_id参数，则自动打开项目详情
+            if (projectId) {
+                showProjectDetails(projectId);
+            }
+        });
+        
+        // 显示项目详情函数
+        window.showProjectDetails = function(projectId) {
+            // 显示加载状态
+            $('#projectDetailName').text('加载中...');
+            $('#projectDetailId').text('ID: ' + projectId);
+            
+            // 清空其他字段
+            $('#projectDetailType').text('加载中...');
+            $('#projectDetailPrice').text('加载中...');
+            $('#projectDetailCost').text('加载中...');
+            $('#projectDetailUnitPrice').text('加载中...');
+            $('#projectDetailEngineer').text('加载中...');
+            $('#projectDetailGroup').text('加载中...');
+            $('#projectDetailTags div').empty();
+            $('#projectDetailTime').text('加载中...');
+            
+            // 更新编辑和删除链接
+            $('#editProjectLink').attr('href', '/project_management/edit_project/' + projectId);
+            $('#deleteProjectBtn').data('project-id', projectId);
+            
+            // 绑定删除按钮事件
+            $('#deleteProjectBtn').off('click').on('click', function() {
+                const pid = $(this).data('project-id');
+                if (confirm('确定要删除此项目吗？此操作不可撤销。')) {
+                    window.location.href = '/project_management/delete_project/' + pid;
+                }
+            });
+            
+            // 调用API获取项目详情
+            $.ajax({
+                url: '/project_management/get_project_details/' + projectId,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    // 填充项目详情
+                    $('#projectDetailName').text(data.name);
+                    $('#projectDetailId').text('ID: ' + data.id);
+                    $('#projectDetailType').text(data.project_type);
+                    $('#projectDetailPrice').text(data.price ? '￥' + data.price.toFixed(2) : '未设置');
+                    $('#projectDetailCost').text(data.cost ? '￥' + data.cost.toFixed(2) : '未设置');
+                    $('#projectDetailUnitPrice').text(data.unit_price ? '￥' + data.unit_price.toFixed(2) : '未设置');
+                    $('#projectDetailEngineer').text(data.engineer);
+                    $('#projectDetailGroup').text(data.group_name);
+                    $('#projectDetailTime').text(data.created_time);
+                    
+                    // 填充标签
+                    const tagsContainer = $('#projectDetailTags div');
+                    tagsContainer.empty();
+                    if (data.tags && data.tags.length > 0) {
+                        data.tags.forEach(function(tag) {
+                            tagsContainer.append('<span class="tag">' + tag.name + '</span>');
+                        });
+                    } else {
+                        tagsContainer.append('<span class="text-muted">无标签</span>');
+                    }
+                    
+                    // 填充论文资料和项目资料
+                    const papersContainer = $('#projectDetailPapers');
+                    const materialsContainer = $('#projectDetailMaterials');
+                    
+                    // 清空容器
+                    papersContainer.empty();
+                    materialsContainer.empty();
+                    
+                    // 检查是否有文档数据
+                    if (data.documents && data.documents.length > 0) {
+                        // 分离论文资料和项目资料
+                        const papers = data.documents.filter(doc => doc.type === 'paper');
+                        const materials = data.documents.filter(doc => doc.type !== 'paper');
+                        
+                        // 显示论文资料
+                        if (papers.length > 0) {
+                            const papersList = $('<ul class="list-unstyled"></ul>');
+                            papers.forEach(function(paper) {
+                                const downloadUrl = '/project_management/download_materials/' + paper.id;
+                                papersList.append('<li><a href="' + downloadUrl + '" target="_blank">📄 ' + paper.filename + '</a></li>');
+                            });
+                            papersContainer.append(papersList);
+                        } else {
+                            papersContainer.append('<span class="text-muted">暂无论文资料</span>');
+                        }
+                        
+                        // 显示项目资料
+                        if (materials.length > 0) {
+                            const materialsList = $('<ul class="list-unstyled"></ul>');
+                            materials.forEach(function(material) {
+                                const downloadUrl = '/project_management/download_materials/' + material.id;
+                                materialsList.append('<li><a href="' + downloadUrl + '" target="_blank">📁 ' + material.filename + '</a></li>');
+                            });
+                            materialsContainer.append(materialsList);
+                        } else {
+                            materialsContainer.append('<span class="text-muted">暂无项目资料</span>');
+                        }
+                    } else {
+                        papersContainer.append('<span class="text-muted">暂无论文资料</span>');
+                        materialsContainer.append('<span class="text-muted">暂无项目资料</span>');
+                    }
+                    
+                    // 显示模态框
+                    $('#projectDetailsModal').modal('show');
+                },
+                error: function(xhr, status, error) {
+                    let errorMessage = '获取项目详情失败';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        errorMessage = response.error || errorMessage;
+                    } catch (e) {
+                        // 解析失败，使用默认错误信息
+                    }
+                    
+                    alert(errorMessage);
+                    console.error('获取项目详情错误:', error);
+                }
+            });
+        };
+        
+        // 关闭项目详情模态框
+        window.closeProjectDetails = function() {
+            $('#projectDetailsModal').modal('hide');
+        };
+    </script>
+{% endblock %}

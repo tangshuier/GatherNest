@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}编辑用户 - 成品管理系统{% endblock %}
+{% block page_title %}编辑用户信息{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="form-section">
+        <h3>编辑用户：{{ user.username }}</h3>
+        <form method="POST" action="{{ url_for('user.edit_user', user_id=user.id) }}">
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.new_name.label }}
+                {{ form.new_name(class="form-control") }}
+                {% for error in form.new_name.errors %}
+                    <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.new_password.label }}
+                {{ form.new_password(class="form-control") }}
+                {% for error in form.new_password.errors %}
+                    <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+            
+            <div class="form-actions">
+                {{ form.submit(class="btn-primary") }}
+                <a href="{{ url_for('admin.admin_users') }}" class="btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .form-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .error-message {
+        color: #ef4444;
+        font-size: 0.9em;
+        display: block;
+        margin-top: 5px;
+    }
+    
+    .form-actions {
+        margin-top: 20px;
+    }
+    
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+    
+    .btn-secondary {
+        background: #94a3b8;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+</style>
+{% endblock %}

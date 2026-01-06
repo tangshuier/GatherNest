@@ -1,0 +1,50 @@
+# 依赖目录
+venv/
+env/
+*.egg-info/
+
+# 编译文件
+__pycache__/
+*.pyc
+*.pyo
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 日志文件
+*.log
+logs/
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 测试覆盖率
+.coverage
+htmlcov/
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 生产环境文件
+instance/
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# 其他
+*.bak
+*.old

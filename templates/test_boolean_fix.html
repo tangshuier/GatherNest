@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>布尔值修复测试</title>
+    <script src="{{ url_for('static', filename='js/jquery-3.6.0.min.js') }}"></script>
+    <script>
+        // 故意使用Python风格的布尔值来测试错误处理
+        function testBooleanError() {
+            try {
+                console.log('测试Python布尔值: ' + false);
+                alert('成功! false 被正确解析');
+            } catch (error) {
+                console.error('测试失败:', error);
+                alert('修复未生效: ' + error.message);
+            }
+        }
+        
+        // 等待页面加载完成后执行测试
+        $(document).ready(function() {
+            console.log('页面加载完成，准备测试...');
+            // 延迟执行测试，确保全局错误处理器已经初始化
+            setTimeout(testBooleanError, 1000);
+        });
+    </script>
+</head>
+<body>
+    <h1>Python布尔值修复测试</h1>
+    <p>这个页面将自动测试我们的全局错误处理器是否能正确处理Python风格的布尔值。</p>
+    <button onclick="testBooleanError()">手动测试</button>
+    <div id="test-result"></div>
+</body>
+</html>

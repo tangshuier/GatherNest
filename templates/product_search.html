@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block title %}项目查询 - 客服中心{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-6">项目查询系统</h1>
+    
+    <!-- 搜索区域 -->
+    <div class="card shadow-lg p-8 mb-6 bg-white rounded">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-lg" placeholder="搜索项目名称、型号、关键词..." id="projectSearch">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary btn-lg" type="button">
+                            <i class="fas fa-search mr-2"></i>搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <select class="form-control form-control-lg" id="projectCategory">
+                    <option value="all">全部分类</option>
+                    <option value="software">软件项目</option>
+                    <option value="hardware">硬件项目</option>
+                    <option value="service">服务项目</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <select class="form-control form-control-lg" id="projectStatus">
+                    <option value="all">全部状态</option>
+                    <option value="pending">待处理</option>
+                    <option value="in_progress">进行中</option>
+                    <option value="completed">已完成</option>
+                    <option value="delivered">已交付</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- 高级搜索选项 -->
+        <div class="mt-4" id="advancedSearch">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <input type="text" class="form-control" placeholder="最低价格" id="minPrice">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <input type="text" class="form-control" placeholder="最高价格" id="maxPrice">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <input type="text" class="form-control" placeholder="上市日期从" id="startDate">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <input type="text" class="form-control" placeholder="上市日期至" id="endDate">
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3">
+            <button class="btn btn-link" id="toggleAdvancedSearch">
+                <i class="fas fa-chevron-down mr-1"></i>高级搜索
+            </button>
+        </div>
+    </div>
+    
+    <!-- 项目筛选标签 -->
+    <div class="mb-4">
+        <div class="btn-group" role="group" aria-label="快速筛选">
+            <button type="button" class="btn btn-primary">全部项目</button>
+            <button type="button" class="btn btn-secondary">热门项目</button>
+            <button type="button" class="btn btn-secondary">最近更新</button>
+            <button type="button" class="btn btn-secondary">促销项目</button>
+        </div>
+    </div>
+    
+    <!-- 产品列表 -->
+    <div class="card shadow-lg mb-6 bg-white rounded">
+        <div class="card-header bg-primary text-white">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2 class="mb-0">项目列表</h2>
+                </div>
+                <div class="col-md-6 text-right">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-white btn-sm">
+                            <i class="fas fa-th-large mr-1"></i>网格视图
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm">
+                            <i class="fas fa-list mr-1"></i>列表视图
+                        </button>
+                        <select class="form-control form-control-sm ml-2">
+                            <option>默认排序</option>
+                            <option>价格从低到高</option>
+                            <option>价格从高到低</option>
+                            <option>上市日期</option>
+                            <option>产品名称</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-body p-0">
+            <table class="table table-hover table-responsive">
+                <thead class="thead-light">
+                    <tr>
+                        <th>项目图片</th>
+                        <th>项目名称</th>
+                        <th>型号</th>
+                        <th>分类</th>
+                        <th>价格</th>
+                        <th>库存</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 产品1 -->
+                    <tr>
+                        <td>
+                            <img src="https://via.placeholder.com/80x80?text=Project1" alt="项目图片" class="img-thumbnail" width="80" height="80">
+                        </td>
+                        <td>智能办公系统 V3.0</td>
+                        <td>SO3000</td>
+                        <td>软件项目</td>
+                        <td>¥9,999.00</td>
+                        <td>充足</td>
+                        <td><span class="badge badge-success">进行中</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">详情</button>
+                            <button class="btn btn-sm btn-secondary">技术规格</button>
+                            <button class="btn btn-sm btn-info">使用手册</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- 产品2 -->
+                    <tr>
+                        <td>
+                            <img src="https://via.placeholder.com/80x80?text=Project2" alt="项目图片" class="img-thumbnail" width="80" height="80">
+                        </td>
+                        <td>数据备份服务器</td>
+                        <td>DB5000</td>
+                        <td>硬件项目</td>
+                        <td>¥25,800.00</td>
+                        <td>有限</td>
+                        <td><span class="badge badge-success">进行中</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">详情</button>
+                            <button class="btn btn-sm btn-secondary">技术规格</button>
+                            <button class="btn btn-sm btn-info">使用手册</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- 产品3 -->
+                    <tr>
+                        <td>
+                            <img src="https://via.placeholder.com/80x80?text=Project3" alt="项目图片" class="img-thumbnail" width="80" height="80">
+                        </td>
+                        <td>企业级安全防护套件</td>
+                        <td>ES7000</td>
+                        <td>软件项目</td>
+                        <td>¥12,600.00</td>
+                        <td>充足</td>
+                        <td><span class="badge badge-success">已完成</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">详情</button>
+                            <button class="btn btn-sm btn-secondary">技术规格</button>
+                            <button class="btn btn-sm btn-info">使用手册</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- 产品4 -->
+                    <tr>
+                        <td>
+                            <img src="https://via.placeholder.com/80x80?text=Project4" alt="项目图片" class="img-thumbnail" width="80" height="80">
+                        </td>
+                        <td>云服务基础套餐</td>
+                        <td>CS1000</td>
+                        <td>服务项目</td>
+                        <td>¥2,800.00/月</td>
+                        <td>-</td>
+                        <td><span class="badge badge-success">已交付</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">详情</button>
+                            <button class="btn btn-sm btn-secondary">技术规格</button>
+                            <button class="btn btn-sm btn-info">使用手册</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- 产品5 -->
+                    <tr>
+                        <td>
+                            <img src="https://via.placeholder.com/80x80?text=Project5" alt="项目图片" class="img-thumbnail" width="80" height="80">
+                        </td>
+                        <td>旧版客户管理系统</td>
+                        <td>CRM2000</td>
+                        <td>软件项目</td>
+                        <td>-</td>
+                        <td>无</td>
+                        <td><span class="badge badge-secondary">已完成</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">详情</button>
+                            <button class="btn btn-sm btn-secondary">技术规格</button>
+                            <button class="btn btn-sm btn-info">使用手册</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分页 -->
+        <div class="card-footer bg-light">
+            <nav aria-label="项目列表分页">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="text-sm text-gray-600">显示 1-5 条，共 24 条记录</p>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="pagination justify-content-end">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">4</a></li>
+                            <li class="page-item"><a class="page-link" href="#">5</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">下一页</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- 项目快速查询 -->
+    <div class="card shadow-lg p-8 mb-6 bg-white rounded">
+        <h2 class="text-primary mb-4">快速导航</h2>
+        <div class="row">
+            <div class="col-md-3">
+                <a href="#" class="btn btn-outline-primary btn-block mb-2">
+                    <i class="fas fa-question-circle mr-2"></i>常见问题解答
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="#" class="btn btn-outline-primary btn-block mb-2">
+                    <i class="fas fa-book mr-2"></i>项目文档下载
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="#" class="btn btn-outline-primary btn-block mb-2">
+                    <i class="fas fa-chart-line mr-2"></i>项目报表
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="#" class="btn btn-outline-primary btn-block mb-2">
+                    <i class="fas fa-user-cog mr-2"></i>我的收藏
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-6">
+        <a href="{{ url_for('user.customer_service_panel') }}" class="btn btn-secondary">返回客服面板</a>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}
+
+.img-thumbnail {
+    border-radius: 4px;
+    transition: transform 0.2s;
+}
+
+.img-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+.btn {
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+#advancedSearch {
+    display: none;
+}
+
+/* 响应式设计调整 */
+@media (max-width: 768px) {
+    .row {
+        margin-bottom: 15px;
+    }
+    
+    .card {
+        margin-bottom: 15px;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        margin-bottom: 5px;
+    }
+}
+</style>
+
+<script>
+// 高级搜索切换功能
+$(document).ready(function() {
+    $('#toggleAdvancedSearch').click(function() {
+        $('#advancedSearch').toggle();
+        const icon = $(this).find('i');
+        if (icon.hasClass('fa-chevron-down')) {
+            icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+            $(this).html('<i class="fas fa-chevron-up mr-1"></i>收起高级搜索');
+        } else {
+            icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+            $(this).html('<i class="fas fa-chevron-down mr-1"></i>高级搜索');
+        }
+    });
+    
+    // 添加搜索功能
+    const searchButton = document.querySelector('.input-group-append button');
+    const searchInput = document.getElementById('projectSearch');
+    
+    if (searchButton) {
+        searchButton.id = 'searchBtn'; // 为搜索按钮添加ID
+    }
+    
+    if (searchButton && searchInput) {
+        // 搜索功能
+    searchButton.addEventListener('click', function() {
+        const searchTerm = document.getElementById('projectSearch').value;
+        const category = document.getElementById('projectCategory').value;
+        const status = document.getElementById('projectStatus').value;
+        
+        // 这里可以添加AJAX请求来过滤项目列表
+        // 实际项目中，这里会调用API获取过滤后的项目列表
+    });
+        
+        // 回车键触发搜索
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                searchButton.click();
+            }
+        });
+    }
+    
+    // 为排序下拉框添加ID
+    const sortSelect = document.querySelector('.card-header .form-control-sm');
+    if (sortSelect) {
+        sortSelect.id = 'sortBy';
+        
+        // 排序功能
+        sortSelect.addEventListener('change', function() {
+            const sortValue = this.value;
+            // 实际项目中，这里会调用API重新排序项目列表
+        });
+    }
+    
+    // 标签筛选功能
+    document.querySelectorAll('.btn-group button').forEach(button => {
+        button.addEventListener('click', function() {
+            // 移除所有按钮的选中状态
+            document.querySelectorAll('.btn-group button').forEach(btn => {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+            });
+            
+            // 设置当前按钮为选中状态
+            this.classList.remove('btn-secondary');
+            this.classList.add('btn-primary');
+            
+            const filterType = this.textContent.trim();
+            // 实际项目中，这里会调用API根据标签筛选项目
+        });
+    });
+    
+    // 分页功能 - 查找分页链接而不是按钮
+    document.querySelectorAll('.pagination a.page-link').forEach(link => {
+        link.addEventListener('click', function(event) {
+            event.preventDefault();
+            // 跳过上一页/下一页按钮
+            if (!this.textContent.trim().match(/^[0-9]+$/)) return;
+            
+            const pageNum = this.textContent.trim();
+        // 实际项目中，这里会调用API获取指定页的项目列表
+        });
+    });
+});
+</script>
+{% endblock %}

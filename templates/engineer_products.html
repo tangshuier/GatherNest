@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block title %}项目管理系统{% endblock %}
+{% block page_title %}{{ engineer.name }}工程师的项目分配{% endblock %}
+
+{% block content %}
+<style>
+.progress-select {
+    border: none;
+    background-color: #6f42c1;
+    color: #fff;
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+    min-width: 100px;
+    text-align: center;
+}
+
+.progress-select:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.progress-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.progress-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 100px;
+    text-align: center;
+}
+
+.progress-warning { background-color: #6f42c1; color: #fff; font-weight: 500; }
+.progress-danger { background-color: #6f42c1; color: #fff; font-weight: 500; }
+.progress-primary { background-color: #6f42c1; color: #fff; font-weight: 500; }
+.progress-info { background-color: #6f42c1; color: #fff; font-weight: 500; }
+.progress-success { background-color: #6f42c1; color: #fff; font-weight: 500; }
+.progress-dark { background-color: #6f42c1; color: #fff; font-weight: 500; }
+</style>
+<div class="section fade-in">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2>{{ engineer.name }} 的项目</h2>
+            <p>分配的项目总数: {{ projects|length }}</p>
+        </div>
+        <a href="{{ url_for('user.engineer_panel') }}">
+            <button type="button" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回工程师面板
+            </button>
+        </a>
+    </div>
+    
+    {% if projects %}
+    <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
+        <table class="sticky-header">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>项目名称</th>
+                    <th>群号</th>
+                    <th>单价</th>
+                    <th>需求</th>
+                    <th>图片</th>
+                    <th>分配时间</th>
+                    <th>进度</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                {% if project.status != 'completed' %}
+                <tr>
+                    <td>{{ project.id or 'N/A' }}</td>
+                    <td>{{ project.name or '未命名项目' }}</td>
+                    <td>{{ project.group_name or '无' }}</td>
+                    <td>{% if project.product_type == 'custom' and project.unit_price is not none %}{{ "¥%.2f"|format(project.unit_price) }}{% elif project.price is not none %}{{ "¥%.2f"|format(project.price) }}{% else %}未设置{% endif %}</td>
+                    <td>{{ project.requirements[:50] ~ '...' if project.requirements and project.requirements|length > 50 else (project.requirements or '无') }}</td>
+                    <td>
+                        {% if project.images %}
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            {% for image in project.images %}
+                            <div style="position: relative; display: inline-block;">
+                                <img src="/{{ image.filepath.replace('\\', '/') }}" alt="项目图片" class="product-image-thumbnail" data-src="/{{ image.filepath.replace('\\', '/') }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        无
+                        {% endif %}
+                    </td>
+                    <td>{{ project.assigned_time.strftime('%Y-%m-%d %H:%M') if project.assigned_time else '未分配时间' }}</td>
+                    <td>
+                        {% if project.progress != '结单' %}
+                        <form method="POST" action="{{ url_for('user.update_project_progress') }}">
+                            <input type="hidden" name="project_id" value="{{ project.id }}">
+                            <select name="progress" class="progress-select {{ 'progress-warning' if project.progress in ['无方案', '方案未确认', '需要方案'] else 
+                                            'progress-danger' if project.progress == '确认方案不制作' else 
+                                            'progress-primary' if project.progress == '待制作' else 
+                                            'progress-info' if project.progress in ['制作中', '完成待确认'] else 
+                                            'progress-success' if project.progress == '已完成' else 
+                                            'progress-dark' }}" onchange="this.form.submit()">
+                                <option value="制作中" {% if project.progress == '制作中' %}selected{% endif %}>制作中</option>
+                                <option value="完成待确认" {% if project.progress == '完成待确认' %}selected{% endif %}>完成待确认</option>
+                                <option value="确认不发货" {% if project.progress == '确认不发货' %}selected{% endif %}>确认不发货</option>
+                                <option value="确认待发货" {% if project.progress == '确认待发货' %}selected{% endif %}>确认待发货</option>
+                                <option value="已完成" {% if project.progress == '已完成' %}selected{% endif %}>已完成</option>
+                            </select>
+                        </form>
+                        {% else %}
+                        <div class="progress-wrapper">
+                            <span class="progress-badge progress-dark">{{ project.progress or '未设置' }}</span>
+                            <a href="{{ url_for('user.request_progress_change', project_id=project.id) }}" class="btn btn-sm btn-warning ml-2">申请修改</a>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary">详细</button>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="no-data">
+        <p><i class="fas fa-inbox fa-2x" style="color: #94a3b8;"></i></p>
+        <p>{{ engineer.name }} 没有分配任何项目</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .sticky-header thead {
+        position: sticky;
+        top: 0;
+        background: #f1f5f9;
+        z-index: 10;
+    }
+    
+    .sticky-header th, .sticky-header td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .sticky-header th {
+        font-weight: 600;
+    }
+    
+    /* 调整表格宽度以适应内容 */
+    .sticky-header th:nth-child(1),
+    .sticky-header td:nth-child(1) { width: 60px; }
+    .sticky-header th:nth-child(2),
+    .sticky-header td:nth-child(2) { width: 150px; }
+    .sticky-header th:nth-child(3),
+    .sticky-header td:nth-child(3) { width: 120px; }
+    .sticky-header th:nth-child(4),
+    .sticky-header td:nth-child(4) { width: 100px; }
+    .sticky-header th:nth-child(5),
+    .sticky-header td:nth-child(5) { width: 180px; }
+    .sticky-header th:nth-child(6),
+    .sticky-header td:nth-child(6) { width: 100px; }
+    .sticky-header th:nth-child(7),
+    .sticky-header td:nth-child(7) { width: 130px; }
+    .sticky-header th:nth-child(8),
+.sticky-header td:nth-child(8) { width: 150px; }
+    .sticky-header th:nth-child(9),
+    .sticky-header td:nth-child(9) { width: 200px; }
+    
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        color: white;
+        font-size: 0.9rem;
+    }
+    
+    .status-completed {
+        background-color: #10b981;
+    }
+    
+    .status-in-progress {
+        background-color: #f59e0b;
+    }
+    
+    .status-pending {
+        background-color: #3b82f6;
+    }
+    
+    .status-not-started {
+        background-color: #6b7280;
+    }
+    
+    .status-unknown {
+        background-color: #ef4444;
+    }
+    
+    /* 进度标签样式 */
+    .progress-badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        color: white;
+        font-size: 0.9rem;
+        display: inline-block;
+    }
+    
+    .progress-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .progress-danger {
+        background-color: #dc3545;
+    }
+    
+    .progress-primary {
+        background-color: #0d6efd;
+    }
+    
+    .progress-info {
+        background-color: #17a2b8;
+    }
+    
+    .progress-success {
+        background-color: #10b981;
+    }
+    
+    .progress-dark {
+        background-color: #212529;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 40px 20px;
+        color: #64748b;
+    }
+</style>
+
+<!-- 图片查看模态框 -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" role="dialog" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imagePreviewModalLabel">产品图片预览</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="关闭">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="overflow: auto;">
+                <img id="previewImage" src="" alt="产品图片预览" class="img-fluid mx-auto d-block" style="max-height: 70vh; object-fit: contain;">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+// 图片查看功能
+$(document).ready(function() {
+    // 点击缩略图显示大图
+    $('.product-image-thumbnail').on('click', function() {
+        var imageSrc = $(this).attr('data-src');
+        $('#previewImage').attr('src', imageSrc);
+        $('#imagePreviewModal').modal('show');
+    });
+});
+</script>
+{% endblock %}

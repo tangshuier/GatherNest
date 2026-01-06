@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}申请标签{% endblock %}
+
+{% block content %}
+<style>
+    .card {
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .form-label {
+        font-weight: 500;
+    }
+</style>
+
+<div class="content-wrapper">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 内容区域 -->
+            <main role="main" class="col-md-12 ml-sm-auto px-4">
+                <div class="sidebar-sticky">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                        <span>功能导航</span>
+                    </h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('project_management.projects_list') }}">
+                                <span data-feather="file"></span>
+                                项目列表
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('project_management.add_project') }}">
+                                <span data-feather="plus"></span>
+                                添加项目
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('project_management.request_tag') }}">
+                                <span data-feather="tag"></span>
+                                申请标签
+                            </a>
+                        </li>
+                        {% if current_user.role == 'super_admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('project_management.manage_tag_requests') }}">
+                                <span data-feather="check-circle"></span>
+                                管理标签申请
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- 主内容区 -->
+            <main role="main" class="col-md-10 ml-sm-auto px-4">
+                <div class="pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">申请标签</h1>
+                </div>
+
+                <!-- 消息提示 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <!-- 申请标签表单 -->
+                <div class="card p-5">
+                    <form method="post" action="{{ url_for('project_management.request_tag') }}">
+                        <div class="mb-4">
+                            <label for="tag_name" class="form-label">标签名称</label>
+                            <input type="text" class="form-control" id="tag_name" name="tag_name" value="{{ tag_name }}" placeholder="请输入标签名称" required>
+                            <div class="form-text">请输入简洁明了的标签名称，避免使用特殊字符</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="reason" class="form-label">申请理由</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="请说明为什么需要这个标签">{{ reason }}</textarea>
+                            <div class="form-text">请详细说明标签的用途和应用场景</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('project_management.projects_list') }}" class="btn btn-secondary me-2 shadow-sm" style="padding: 0.6rem 1.25rem; border-radius: 6px; font-weight: 500; transition: all 0.2s ease;">取消</a>
+                            <button type="submit" class="btn btn-primary">提交申请</button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 表单验证增强
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(event) {
+                const tagName = document.getElementById('tag_name');
+                const reason = document.getElementById('reason');
+                let isValid = true;
+                
+                if (!tagName.value.trim()) {
+                    tagName.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    tagName.classList.remove('is-invalid');
+                }
+                
+                if (!reason.value.trim()) {
+                    reason.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    reason.classList.remove('is-invalid');
+                }
+                
+                if (!isValid) {
+                    event.preventDefault();
+                }
+            });
+        });
+    </script>
+</main>
+</div>
+</div>
+{% endblock %}

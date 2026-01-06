@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}管理培训资料 - 管理员面板{% endblock %}
+{% block page_title %}管理培训资料{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-md p-8 mb-6 bg-white rounded">
+        <h2 class="text-primary mb-4">培训资料管理</h2>
+        
+        <!-- 添加新类别表单和添加新资料按钮 -->
+        <div class="mb-6">
+            <form action="{{ url_for('training.add_training_category') }}" method="post" class="form-inline">
+                <div class="form-group mr-2">
+                    <input type="text" name="new_category" class="form-control" placeholder="输入新类别名称" required>
+                </div>
+                <button type="submit" class="btn btn-primary mr-2">添加类别</button>
+                <button onclick="window.location.href='{{ url_for('training.add_training_material') }}'" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 添加新资料
+                </button>
+            </form>
+        </div>
+        
+        <!-- 培训资料列表 -->
+        {% if materials %}
+            {% for category in categories %}
+                <div class="mb-6">
+                    <h3 class="text-secondary mb-3">
+                        <i class="fas fa-folder mr-2"></i>{{ category }}
+                    </h3>
+                    <div class="table-responsive p-3">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>标题</th>
+                                    <th>描述</th>
+                                    <th>文件类型</th>
+                                    <th>是否必学</th>
+                                    <th>显示顺序</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for material in materials if material.category == category %}
+                                    <tr>
+                                        <td>{{ material.title }}</td>
+                                        <td>{{ material.description or '-' }}</td>
+                                        <td>
+                                            {% if material.file_type == 'pdf' %}
+                                                <i class="fas fa-file-pdf text-danger"></i> PDF
+                                            {% elif material.file_type in ['doc', 'docx'] %}
+                                                <i class="fas fa-file-word text-blue"></i> Word
+                                            {% elif material.file_type in ['xls', 'xlsx'] %}
+                                                <i class="fas fa-file-excel text-green"></i> Excel
+                                            {% elif material.file_type in ['ppt', 'pptx'] %}
+                                                <i class="fas fa-file-powerpoint text-orange"></i> PowerPoint
+                                            {% elif material.file_type in ['mp4', 'avi', 'mov', 'wmv'] %}
+                                                <i class="fas fa-file-video text-primary"></i> 视频
+                                            {% else %}
+                                                <i class="fas fa-file"></i> 其他
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if material.is_required %}
+                                                <span class="badge badge-danger">是</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">否</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ material.display_order }}</td>
+                                        <td>
+                                            <a href="{{ url_for('training.edit_training_material', material_id=material.id) }}" class="btn btn-sm btn-warning mr-1">
+                                                <i class="fas fa-edit"></i> 编辑
+                                            </a>
+                                            <a href="{{ url_for('training.delete_training_material', material_id=material.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除此培训资料吗？')">
+                                                <i class="fas fa-trash"></i> 删除
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                暂无培训资料，请先添加。
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .table th, .table td {
+        vertical-align: middle;
+    }
+    
+    .btn-sm {
+        margin-right: 5px;
+    }
+    
+    /* 进一步优化内边距和间距 */
+    .card {
+        margin-bottom: 2rem;
+        padding: 40px !important;
+    }
+    
+    .mb-6 {
+        margin-bottom: 2rem;
+    }
+    
+    .table {
+        width: 100%;
+        margin-bottom: 1.5rem;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+    
+    .table-responsive {
+        margin-bottom: 1.5rem;
+        padding: 15px;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+    
+    .alert {
+        margin-top: 1.5rem;
+        padding: 1.25rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-inline {
+        margin-bottom: 1.5rem;
+    }
+    
+    .text-primary {
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}

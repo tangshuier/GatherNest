@@ -1,0 +1,1043 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if current_user.role == 'engineer' or (hasattr(current_user, 'role_detail') and current_user.role_detail == 'engineer') or (hasattr(current_user, 'role_level') and current_user.role_level == 3) %}
+    工程师教学资料 - 资料整理系统
+  {% else %}
+    培训资料 - 试岗员工专区
+  {% endif %}
+{% endblock %}
+
+{% block page_title %}资料{% endblock %}
+
+{% block content %}
+<!-- 视频播放器模态框 -->
+<div class="modal fade" id="videoPlayerModal" tabindex="-1" role="dialog" aria-labelledby="videoPlayerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="videoPlayerModalLabel">视频播放</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="video-container">
+          <video id="videoPlayer" controls preload="metadata" playsinline crossorigin="anonymous">
+            <source src="" type="video/mp4">
+            您的浏览器不支持视频播放。
+          </video>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 文档查看器模态框 -->
+<div class="modal fade" id="documentViewerModal" tabindex="-1" role="dialog" aria-labelledby="documentViewerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="documentViewerModalLabel">文档查看</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="document-container">
+          <iframe id="documentViewer" class="w-100" frameborder="0"></iframe>
+          <p id="documentFallback" class="text-center text-gray-500 mt-5">
+            文档无法在浏览器中直接查看，<a href="" target="_blank">点击此处下载</a>。
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="documentDownloadLink" href="" target="_blank" class="btn btn-secondary mr-2">下载文档</a>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 简化的文本处理函数
+  function renderText(text) {
+    return text;
+  }
+
+  // 计算并更新学习进度 - 简化版本
+  function updateProgress() {
+    // 由于移除了必学/基础/进阶筛选，简化为只处理复选框状态保存
+    // 实际进度计算可以在后端或需要时重新实现
+  }
+
+  // 页面加载完成后初始化功能
+  document.addEventListener('DOMContentLoaded', function() {
+    // 由于移除了进度显示，不再需要初始化进度
+    
+    // 移除了完成状态复选框功能
+
+    // 视频播放模态框功能
+    var videoModal = $('#videoPlayerModal');
+    var videoPlayer = document.getElementById('videoPlayer');
+    var videoTitle = document.getElementById('videoPlayerModalLabel');
+    
+    // 视频播放优化函数
+    function optimizeVideoPlayback() {
+      const videoElements = videoModal.querySelectorAll('video');
+      videoElements.forEach(function(video) {
+        video.preload = 'metadata';
+        video.addEventListener('loadedmetadata', function() {
+          const aspectRatio = video.videoWidth / video.videoHeight;
+          const containerWidth = video.parentElement.offsetWidth;
+          const optimalHeight = containerWidth / aspectRatio;
+          video.style.width = '100%';
+          video.style.height = optimalHeight + 'px';
+        });
+      });
+    }
+    
+    // 为所有视频链接添加点击事件
+    var videoLinks = document.querySelectorAll('.video-link');
+    for (var i = 0; i < videoLinks.length; i++) {
+      var link = videoLinks[i];
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var videoUrl = this.getAttribute('data-video-url') || this.href;
+        var videoName = this.textContent;
+        
+        // 设置视频源和标题
+        videoPlayer.src = videoUrl;
+        videoTitle.textContent = videoName;
+        
+        // 优化视频播放设置
+        optimizeVideoPlayback();
+        
+        // 打开模态框
+        videoModal.modal('show');
+      });
+    }
+    
+    // 模态框关闭时重置视频
+    videoModal.on('hidden.bs.modal', function() {
+      videoPlayer.pause();
+      videoPlayer.src = '';
+      videoPlayer.load();
+    });
+    
+    // 模态框显示后确保视频容器有足够空间
+    videoModal.on('shown.bs.modal', function() {
+      var videoContainer = document.querySelector('.video-container');
+      if (videoContainer) {
+        // 确保视频容器高度足够
+        var windowHeight = window.innerHeight;
+        var modalHeader = this.querySelector('.modal-header');
+        var modalFooter = this.querySelector('.modal-footer');
+        
+        var headerHeight = modalHeader ? modalHeader.offsetHeight : 0;
+        var footerHeight = modalFooter ? modalFooter.offsetHeight : 0;
+        
+        // 设置视频容器最大高度，留出一些边距
+        var maxHeight = windowHeight * 0.7;
+        videoContainer.style.maxHeight = maxHeight + 'px';
+      }
+    });
+    
+    // 文档查看器模态框功能
+    var docModal = $('#documentViewerModal');
+    var docViewer = document.getElementById('documentViewer');
+    var docTitle = document.getElementById('documentViewerModalLabel');
+    var docFallback = document.getElementById('documentFallback');
+    var docDownloadLink = document.getElementById('documentDownloadLink');
+    var docFallbackLink = docFallback.querySelector('a');
+    
+    // 支持在浏览器中直接预览的文件类型
+    var previewableTypes = [
+      'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md',
+      'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'
+    ];
+    
+    // 为所有文档链接添加点击事件
+    var docLinks = document.querySelectorAll('a.text-blue-600');
+    for (var i = 0; i < docLinks.length; i++) {
+      var link = docLinks[i];
+      // 确保这是一个文件链接（不是锚点或其他链接）
+      if (link.getAttribute('href') && link.getAttribute('href').startsWith('/')) {
+        link.addEventListener('click', function(e) {
+          // 如果是视频链接，不阻止默认行为（让视频播放器处理）
+          if (this.classList.contains('video-link')) {
+            return;
+          }
+          
+          e.preventDefault();
+          var docUrl = this.href;
+          var docName = this.textContent;
+          var fileExtension = getFileExtension(docUrl).toLowerCase();
+          
+          // 设置文档标题和下载链接
+          docTitle.textContent = docName;
+          docDownloadLink.href = docUrl;
+          docFallbackLink.href = docUrl;
+          
+          // 根据文件类型决定是否在iframe中预览
+          if (previewableTypes.includes(fileExtension)) {
+            // 对于PDF和Office文档，使用Google文档查看器或直接显示
+            if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension)) {
+              // 对于Office文档，使用Google文档查看器
+              if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension)) {
+                docViewer.src = 'https://docs.google.com/gview?url=' + encodeURIComponent(window.location.origin + docUrl) + '&embedded=true';
+              } else {
+                // 对于PDF，直接显示
+                docViewer.src = docUrl;
+              }
+              docViewer.style.display = 'block';
+              docFallback.style.display = 'none';
+            } else if (fileExtension === 'md') {
+              // 对于Markdown文件，使用简化的样式处理
+              var xhr = new XMLHttpRequest();
+              xhr.open('GET', docUrl, true);
+              xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                  // 先在主作用域中渲染Markdown
+                  var markdownContent = xhr.responseText;
+                  var renderedContent = renderMarkdown(markdownContent);
+                  
+                  // 创建一个带有自定义样式的HTML页面
+                  var html = '<!DOCTYPE html>\n';
+                  html += '<html>\n';
+                  html += '<head>\n';
+                  html += '  <meta charset="UTF-8">\n';
+                  html += '  <title>' + docName + '</title>\n';
+                  html += '  <style>\n';
+                  html += '    body {\n';
+                  html += '      background-color: white !important;\n';
+                  html += '      color: #333333 !important;\n';
+                  html += '      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;\n';
+                  html += '      line-height: 1.6;\n';
+                  html += '      margin: 0;\n';
+                  html += '      padding: 20px;\n';
+                  html += '    }\n';
+                  html += '    h1, h2, h3, h4, h5, h6 {\n';
+                  html += '      color: #2c3e50;\n';
+                  html += '      margin-top: 1.5em;\n';
+                  html += '      margin-bottom: 0.5em;\n';
+                  html += '    }\n';
+                  html += '    p {\n';
+                  html += '      margin-bottom: 1em;\n';
+                  html += '    }\n';
+                  html += '    pre {\n';
+                  html += '      background-color: #f5f5f5;\n';
+                  html += '      border-radius: 4px;\n';
+                  html += '      padding: 1em;\n';
+                  html += '      overflow-x: auto;\n';
+                  html += '      color: #333;\n';
+                  html += '    }\n';
+                  html += '    code {\n';
+                  html += '      font-family: \'Courier New\', Courier, monospace;\n';
+                  html += '      background-color: #f5f5f5;\n';
+                  html += '      padding: 0.2em 0.4em;\n';
+                  html += '      border-radius: 3px;\n';
+                  html += '      color: #333;\n';
+                  html += '    }\n';
+                  html += '    a {\n';
+                  html += '      color: #0066cc;\n';
+                  html += '      text-decoration: none;\n';
+                  html += '    }\n';
+                  html += '    a:hover {\n';
+                  html += '      text-decoration: underline;\n';
+                  html += '    }\n';
+                  html += '    ul, ol {\n';
+                  html += '      margin-bottom: 1em;\n';
+                  html += '      padding-left: 2em;\n';
+                  html += '    }\n';
+                  html += '    table {\n';
+                  html += '      border-collapse: collapse;\n';
+                  html += '      width: 100%;\n';
+                  html += '      margin-bottom: 1em;\n';
+                  html += '    }\n';
+                  html += '    th, td {\n';
+                  html += '      border: 1px solid #ddd;\n';
+                  html += '      padding: 8px;\n';
+                  html += '      text-align: left;\n';
+                  html += '    }\n';
+                  html += '    th {\n';
+                  html += '      background-color: #f2f2f2;\n';
+                  html += '      color: #333;\n';
+                  html += '    }\n';
+                  html += '  </style>\n';
+                  html += '</head>\n';
+                  html += '<body>\n';
+                  html += '  <div class="markdown-content">' + renderedContent + '</div>\n';
+                  html += '</body>\n';
+                  html += '</html>';
+                
+                  // 使用data URL加载HTML内容
+                  var blob = new Blob([html], { type: 'text/html' });
+                  var url = URL.createObjectURL(blob);
+                  docViewer.src = url;
+                  docViewer.style.display = 'block';
+                  docFallback.style.display = 'none';
+                }
+              };
+              xhr.send();
+              
+              // 在模态框关闭时释放blob URL
+              docModal.one('hidden.bs.modal', function() {
+                var currentSrc = docViewer.src;
+                if (currentSrc.indexOf('blob:') === 0) {
+                  URL.revokeObjectURL(currentSrc);
+                  docViewer.src = '';
+                }
+              });
+              
+              docViewer.style.display = 'block';
+              docFallback.style.display = 'none';
+            } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'txt'].indexOf(fileExtension) !== -1) {
+              // 对于图片和其他文本文件，直接显示
+              docViewer.src = docUrl;
+              docViewer.style.display = 'block';
+              docFallback.style.display = 'none';
+            } else {
+              // 对于不支持预览的文件类型，显示下载提示
+              docViewer.style.display = 'none';
+              docFallback.style.display = 'block';
+            }
+          } else {
+            // 对于不支持预览的文件类型，显示下载提示
+            docViewer.style.display = 'none';
+            docFallback.style.display = 'block';
+          }
+          
+          // 设置iframe高度
+          setIframeHeight();
+          
+          // 打开模态框
+          docModal.modal('show');
+        });
+      }
+    }
+    
+    // 模态框关闭时重置文档查看器和释放blob URL
+    docModal.on('hidden.bs.modal', function() {
+      var currentSrc = docViewer.src;
+      if (currentSrc.indexOf('blob:') === 0) {
+        URL.revokeObjectURL(currentSrc);
+      }
+      docViewer.src = '';
+    });
+    
+    // 模态框显示时设置iframe高度
+    docModal.on('shown.bs.modal', function() {
+      setIframeHeight();
+    });
+    
+    // 窗口大小改变时调整iframe高度
+    window.addEventListener('resize', function() {
+      if (docModal.hasClass('show')) {
+        setIframeHeight();
+      }
+    });
+    
+    // 获取文件扩展名的辅助函数
+    function getFileExtension(url) {
+      var match = url.match(/\.([^.]+)$/);
+      return match ? match[1] : '';
+    }
+    
+    // 设置iframe高度的函数
+    function setIframeHeight() {
+      var modalBody = docModal.find('.modal-body');
+      var modalBodyHeight = modalBody.height();
+      docViewer.style.height = modalBodyHeight - 20 + 'px';
+    }
+  });
+</script>
+<div class="container mt-4">
+    <div class="row">
+        <!-- 主要内容区域 -->
+        <div class="col-md-12">
+            {% if current_user.role == 'engineer' or (hasattr(current_user, 'role_detail') and current_user.role_detail == 'engineer') or (hasattr(current_user, 'role_level') and current_user.role_level == 3) %}
+                <h1 class="text-center mb-6">工程师教学资料</h1>
+                <div class="alert alert-info mb-6 p-5 rounded-md">
+                    <strong>欢迎！</strong> 这里提供了工程师所需的所有教学资料和技术文档。
+                </div>
+            {% else %}
+                <h1 class="text-center mb-6">试岗员工资料</h1>
+                <div class="alert alert-info mb-6 p-5 rounded-md">
+                    <strong>欢迎！</strong> 这里提供了试岗期间所需的所有资料。请按照学习路径完成所有内容。
+                </div>
+            {% endif %}
+                
+                {% if categories %}
+                <div class="training-materials pl-0">
+                    
+                    <!-- 搜索表单 -->
+                    <div class="card shadow-md p-4 mb-6 bg-white rounded-lg border border-gray-200 w-100">
+                        <form action="{{ url_for('user.training_materials') }}" method="get" class="d-flex">
+                            <input type="text" 
+                                   name="search" 
+                                   placeholder="搜索资料名称、描述或类别..." 
+                                   class="form-control flex-grow-1 mr-3 border-gray-300 rounded-md transition-all duration-200 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20 px-4 py-2"
+                                   value="{{ request.args.get('search', '') }}">
+                            <button type="submit" class="btn btn-primary px-6 py-2 rounded-md transition-all duration-200 hover:bg-primary/90 focus:ring-2 focus:ring-primary/30">
+                                <i class="fas fa-search mr-2"></i>搜索
+                            </button>
+                            {% if search_performed %}
+                            <a href="{{ url_for('user.training_materials') }}" class="btn btn-secondary ml-2 px-4 py-2 rounded-md transition-all duration-200 hover:bg-secondary/90 focus:ring-2 focus:ring-secondary/30">
+                                重置
+                            </a>
+                            {% endif %}
+                        </form>
+                        {% if search_performed %}
+                        <p class="text-sm text-gray-600 mt-3">搜索结果: "{{ request.args.get('search') }}" ({{ total_materials }} 个资料)</p>
+                        {% else %}
+                        <p class="text-sm text-gray-600 mt-3">共 {{ total_materials }} 个资料</p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if materials_by_category %}
+                        {% for category in materials_by_category %}
+                        <div class="card shadow-md p-6 mb-6 bg-white rounded-lg border border-gray-200 w-100" id="{{ category.name|lower|replace(' ', '-') }}">
+                            {% if category_selected %}
+                            <h3 class="text-secondary mb-4">
+                                <i class="fas fa-folder mr-2"></i>当前显示: {{ category.name }}
+                            </h3>
+                            {% else %}
+                            <h3 class="text-secondary mb-4">
+                                <i class="fas fa-folder mr-2"></i>{{ category.name }}
+                            </h3>
+                            {% endif %}
+                            <!-- 资料列表表格 -->
+                            <div class="table-responsive">
+                            <table class="table table-hover w-100">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th scope="col" class="w-12">类型</th>
+                                        <th scope="col">资料名称</th>
+                                        <th scope="col">描述</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for material in category.materials %}
+                                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                                        <td class="align-middle">
+                                            {% if material.file_type == 'pdf' %}
+                                            <i class="fas fa-file-pdf text-danger text-xl"></i>
+                                            {% elif material.file_type in ['doc', 'docx'] %}
+                                            <i class="fas fa-file-word text-blue text-xl"></i>
+                                            {% elif material.file_type in ['xls', 'xlsx'] %}
+                                            <i class="fas fa-file-excel text-green text-xl"></i>
+                                            {% elif material.file_type in ['ppt', 'pptx'] %}
+                                            <i class="fas fa-file-powerpoint text-orange text-xl"></i>
+                                            {% elif material.file_type in ['mp4', 'avi', 'mov', 'wmv'] %}
+                                            <i class="fas fa-video text-primary text-xl"></i>
+                                            {% else %}
+                                            <i class="fas fa-file text-gray text-xl"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle font-medium">
+                                            {% if material.file_path %}
+                                                {% if material.file_type in ['mp4', 'avi', 'mov', 'wmv'] %}
+                                            <a href="#" class="text-blue-600 hover:underline video-link" data-video-url="{{ url_for('video.serve_video', filename=material.file_path.split('\\')[-1] if '\\' in material.file_path else material.file_path.split('/')[-1]) }}">{{ material.title }}</a>
+                                            {% else %}
+                                            <a href="/{{ material.file_path }}" class="text-blue-600 hover:underline">{{ material.title }}</a>
+                                            {% endif %}
+                                            {% else %}
+                                            <span class="text-gray-500">{{ material.title }} <small>(暂未上传资料)</small></span>
+                                            {% endif %}
+                                        </td>
+
+                                        <td class="align-middle text-sm text-gray-600">
+                                            {{ material.description or '无描述' }}
+                                        </td>
+
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="alert alert-info mt-4">
+                        暂无资料，请联系管理员添加。
+                    </div>
+                    {% endif %}
+                </div>
+            {% else %}
+            <div class="alert alert-info">
+                暂无资料，请联系管理员添加。
+            </div>
+            {% endif %}
+            
+            {% if current_user.role == 'engineer' or (hasattr(current_user, 'role_detail') and current_user.role_detail == 'engineer') or (hasattr(current_user, 'role_level') and current_user.role_level == 3) %}
+                <div class="text-center mt-6">
+                    <a href="{{ url_for('user.user_panel') }}" class="btn btn-secondary">返回工程师面板</a>
+                </div>
+            {% else %}
+
+                
+                <div class="text-center mt-6">
+                    <a href="{{ url_for('user.trainee_panel') }}" class="btn btn-secondary">返回试岗面板</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // 添加分类筛选功能的JavaScript代码
+    document.addEventListener('DOMContentLoaded', function() {
+        // 侧边栏分类链接已经通过href属性实现了页面切换，不再需要JavaScript事件处理
+        
+        // 筛选复选框事件
+        const filterCheckboxes = document.querySelectorAll('input[type="checkbox"][id^="filter-"]');
+        filterCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // 这里可以添加筛选逻辑，根据选中的复选框显示或隐藏不同类型的资料
+                // 目前只是预留了筛选功能的UI，实际的筛选逻辑需要根据后端数据进一步实现
+                console.log('筛选选项改变:', this.id, this.checked);
+            });
+        });
+    });
+</script>
+
+<style>
+/* 全局重置和基础样式 */
+* {
+    box-sizing: border-box;
+}
+
+/* 主要容器样式 */
+.container {
+    padding: 25px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 培训资料主区域 */
+.training-materials {
+    margin-top: 24px;
+}
+
+.training-materials a:hover {
+    text-decoration: underline;
+}
+
+/* 表格样式优化 */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    background-color: transparent;
+}
+
+.table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table td, .table th {
+    padding: 12px 15px;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+    color: #212529;
+    background-color: rgba(0,0,0,0.04);
+}
+
+/* 响应式表格 */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive > .table {
+    margin-bottom: 0;
+}
+
+/* 徽章样式 */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.badge-danger {
+    color: #fff;
+    background-color: #dc3545;
+}
+
+.list-unstyled li:last-child {
+    margin-bottom: 0;
+}
+
+.list-unstyled li:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* 列表项内元素对齐 */
+.list-unstyled li i {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+}
+
+/* 资料项标题样式 */
+.list-unstyled li a,
+.list-unstyled li span.text-blue-600 {
+    font-weight: 600;
+    color: #0056b3;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 15px;
+}
+
+.list-unstyled li a:hover,
+.list-unstyled li span.text-blue-600:hover {
+    color: #003d80;
+    text-decoration: underline;
+}
+
+/* 徽章样式优化 */
+.list-unstyled li .badge {
+    margin-top: 2px;
+}
+
+/* 描述文本样式 */
+.list-unstyled li p {
+    margin-top: 8px;
+    margin-bottom: 0;
+    color: #6c757d;
+    line-height: 1.5;
+}
+
+/* 资料项样式增强 */
+.text-blue-600 {
+    color: #0066cc;
+    font-weight: 500;
+    display: inline-block;
+    max-width: calc(100% - 80px);
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.text-blue-600:hover {
+    color: #0052a3;
+}
+
+/* 徽章样式美化 */
+.badge {
+    padding: 0.25em 0.5em;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* 按钮样式美化 */
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* 视频链接样式优化 */
+.video-link {
+    display: inline-block;
+    position: relative;
+}
+
+.video-link::after {
+    content: "📹 点击播放视频";
+    font-size: 11px;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+    white-space: nowrap;
+}
+
+/* 进度条样式 */
+.progress {
+    height: 25px;
+    border-radius: 12px;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.progress-bar {
+    border-radius: 12px;
+    background-color: #28a745;
+    transition: width 0.6s ease;
+}
+
+/* 间距类增强 */
+.mt-4 {
+    margin-top: 24px !important;
+}
+
+.mb-4 {
+    margin-bottom: 24px !important;
+}
+
+.mb-6 {
+    margin-bottom: 36px !important;
+}
+
+.mt-6 {
+    margin-top: 36px !important;
+}
+
+/* 欢迎信息样式 */
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+    padding: 16px;
+    border-radius: 6px;
+    margin-bottom: 24px;
+}
+
+/* 标题样式 */
+.text-center {
+    text-align: center;
+}
+
+.text-primary {
+    color: #007bff;
+    margin-bottom: 1.5rem;
+    padding-left: 1rem;
+}
+
+.text-secondary {
+    color: #6c757d;
+    margin-bottom: 1rem;
+    padding-left: 1rem;
+}
+
+/* 培训路径样式 */
+.list-decimal {
+    padding-left: 20px;
+    margin-left: 1rem;
+}
+
+.list-decimal li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+    padding-left: 0.5rem;
+}
+
+/* 警告框样式 */
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .card {
+        margin-bottom: 16px;
+        border-radius: 12px;
+    }
+    
+    .card-body {
+        padding: 12px 16px;
+    }
+    
+    .list-unstyled li {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+    
+    .text-blue-600 {
+        max-width: calc(100% - 70px);
+    }
+    
+    .category-content {
+        flex-direction: column;
+    }
+    
+    .category-title {
+        border-right: none;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* 自定义复选框样式 */
+.custom-control-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.custom-control-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* 视频容器样式 */
+.video-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
+    padding: 0;
+    width: 100%;
+    overflow: hidden;
+    min-height: 60vh;
+}
+
+.video-container video {
+    max-width: 100%;
+    max-height: calc(100vh - 150px); /* 确保视频不会超出屏幕高度 */
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+/* 视频播放器模态框样式优化 */
+#videoPlayerModal .modal-body {
+    min-height: 70vh;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#videoPlayerModal .video-container {
+    width: 100%;
+    height: 100%;
+    min-height: 60vh;
+}
+
+/* 文档容器样式 */
+.document-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: #ffffff;
+}
+
+.document-container iframe {
+    display: none; /* 默认隐藏，由JavaScript控制显示 */
+    border: none;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    width: 100%;
+    height: 100%;
+    color: #333333 !important;
+}
+
+/* 为Google文档查看器和所有iframe内容添加强制样式 */
+#documentViewerModal .modal-content {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+#documentViewerModal .modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#documentViewerModal .modal-title {
+    color: #333333;
+}
+
+.document-container p {
+    display: none; /* 默认隐藏，由JavaScript控制显示 */
+}
+
+/* 文档模态框样式优化 */
+.modal-xl {
+    max-width: 95%;
+    width: 95%;
+}
+
+/* 确保文档查看器模态框内容区域有足够的高度 */
+#documentViewerModal .modal-body {
+    min-height: 70vh;
+    padding: 15px;
+    height: 70vh;
+    display: block;
+    background-color: #ffffff;
+}
+
+/* 确保文档容器能够填充整个模态框内容区域 */
+#documentViewerModal .document-container {
+    width: 100%;
+    height: 100%;
+    background-color: #ffffff !important;
+}
+
+/* 强制所有文档查看器内容使用白色背景和深灰色文字 */
+#documentViewer {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* 为Google文档查看器添加更强的样式覆盖 */
+#documentViewerModal iframe {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* 确保iframe内容区域的样式正确 */
+iframe#documentViewer {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* 增强样式优先级 */
+#documentViewerModal .modal-body .document-container iframe {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* 下载链接样式增强 */
+#documentDownloadLink {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+    text-decoration: none;
+}
+
+#documentDownloadLink:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+@media (max-width: 576px) {
+    .card-header button {
+        font-size: 14px;
+    }
+    
+    .text-blue-600 {
+        max-width: calc(100% - 60px);
+        font-size: 14px;
+    }
+    
+    .list-unstyled li i {
+        font-size: 16px;
+        margin-right: 8px;
+    }
+    
+    .badge {
+        font-size: 11px;
+        padding: 0.2em 0.4em;
+    }
+    
+    /* 移动设备上的视频容器样式 */
+    .video-container video {
+        max-height: calc(100vh - 200px);
+        width: 100%;
+    }
+    
+    #videoPlayerModal .modal-body {
+        min-height: 50vh;
+    }
+    
+    #videoPlayerModal .video-container {
+        min-height: 40vh;
+    }
+}
+
+.category-tree {
+    padding-left: 0;
+}
+
+.category-link {
+    color: #495057;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.category-link:hover {
+    color: #007bff;
+    text-decoration: none;
+    transform: translateX(5px);
+}
+
+.category-link.bg-primary {
+    color: white;
+}
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+    .category-tree {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .sticky-top {
+        position: static !important;
+        top: 0 !important;
+    }
+    
+    .category-tree {
+        max-height: none;
+    }
+}
+</style>
+
+{% endblock %}

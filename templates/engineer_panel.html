@@ -1,0 +1,534 @@
+{% extends "base.html" %}
+
+{% block title %}工程师面板 - 成品管理系统{% endblock %}
+{% block page_title %}工程师面板{% endblock %}
+
+{% block content %}
+<!-- 欢迎信息 -->
+<div class="card fade-in shadow-sm" style="animation-delay: 0.1s;">
+    <div class="card-body welcome-card">
+        <div class="welcome-info">
+            <div class="welcome-icon">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="welcome-text">
+                <h3>欢迎，{% if current_user.username %}{{ current_user.username }}{% endif %}</h3>
+                <p>您当前的角色是：工程师(三级1)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 工程师主要功能区 -->
+<div class="feature-cards">
+    <div class="card fade-in feature-card-hover shadow-sm" style="animation-delay: 0.1s;">
+        <div class="card-body">
+            <div class="card-icon primary">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <h4>项目管理</h4>
+            <p>查看和管理您负责的项目</p>
+            <a href="/user/engineer_projects" class="btn-gradient primary">
+                <span>进入项目管理</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="card fade-in feature-card-hover shadow-sm" style="animation-delay: 0.2s;">
+        <div class="card-body">
+            <div class="card-icon success">
+                <i class="fas fa-user-cog"></i>
+            </div>
+            <h4>个人资料</h4>
+            <p>查看和修改您的个人信息</p>
+            <a href="/user/update_profile" class="btn-gradient secondary">
+                <span>编辑资料</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="card fade-in feature-card-hover shadow-sm" style="animation-delay: 0.3s;">
+        <div class="card-body">
+            <div class="card-icon danger">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h4>已完成项目</h4>
+            <p>查看您已完成的所有项目</p>
+            <a href="/user/completed_projects" class="btn-gradient danger">
+                <span>查看已完成项目</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="card fade-in feature-card-hover shadow-sm" style="animation-delay: 0.4s;">
+        <div class="card-body">
+            <div class="card-icon warning">
+                <i class="fas fa-folder"></i>
+            </div>
+            <h4>项目资料管理</h4>
+            <p>管理您的项目资料和标签</p>
+            <a href="/projects/projects_list" class="btn-gradient warning">
+                <span>进入项目管理</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 工作统计信息 -->
+<div class="card fade-in shadow-sm" style="animation-delay: 0.5s;">
+    <div class="card-header card-header-gradient">
+        <h3>工作统计</h3>
+    </div>
+    <div class="card-body">
+        <div class="stats-cards">
+            <div class="stat-card stats-card-hover">
+                <div class="stat-icon primary">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ assigned_projects|length + completed_projects|length }}</div>
+                    <div class="stat-label">负责项目数</div>
+                </div>
+                <div class="stat-trend"></div>
+            </div>
+            
+            <div class="stat-card stats-card-hover">
+                <div class="stat-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ completed_projects|length }}</div>
+                    <div class="stat-label">已完成任务</div>
+                </div>
+                <div class="stat-trend"></div>
+            </div>
+            
+            <div class="stat-card stats-card-hover">
+                <div class="stat-icon warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ assigned_projects|length }}</div>
+                    <div class="stat-label">待处理任务</div>
+                </div>
+                <div class="stat-trend"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 全局变量增强 */
+    :root {
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* 卡片基础样式增强 */
+    .card {
+        border-radius: 12px !important;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--card-shadow-hover) !important;
+    }
+    
+    .shadow-sm {
+        box-shadow: var(--card-shadow) !important;
+    }
+    
+    /* 欢迎卡片样式 */
+    .welcome-card {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-info {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .welcome-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(74, 144, 226, 0.1), rgba(74, 144, 226, 0.05));
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        transition: transform 0.3s ease;
+    }
+    
+    .welcome-card:hover .welcome-icon {
+        transform: scale(1.05);
+    }
+    
+    .welcome-text h3 {
+        margin: 0 0 8px 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .welcome-text p {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--text-secondary);
+    }
+    
+    /* 功能卡片样式增强 */
+    .feature-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin: 24px 0;
+    }
+    
+    .feature-card-hover {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .feature-card-hover:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--card-shadow-hover) !important;
+    }
+    
+    .feature-card-hover .card-body {
+        padding: 28px 24px;
+    }
+    
+    .card-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        margin-bottom: 20px;
+        transition: transform 0.3s ease;
+    }
+    
+    .feature-card-hover:hover .card-icon {
+        transform: scale(1.1);
+    }
+    
+    .card-icon.primary {
+        background: linear-gradient(135deg, rgba(74, 144, 226, 0.15), rgba(74, 144, 226, 0.05));
+        color: var(--primary-color);
+    }
+    
+    .card-icon.success {
+        background: linear-gradient(135deg, rgba(22, 163, 74, 15%), rgba(22, 163, 74, 0.05));
+        color: var(--success-color);
+    }
+    
+    .card-icon.warning {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+        color: var(--warning-color);
+    }
+    
+    .card-icon.danger {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+        color: var(--danger-color);
+    }
+    
+    .feature-cards .card h4 {
+        margin: 0 0 12px 0;
+        color: var(--text-color);
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    
+    .feature-cards .card p {
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+    
+    /* 渐变按钮样式增强 */
+    .btn-gradient {
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        background-size: 200% auto;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-gradient::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .btn-gradient:hover::before {
+        left: 100%;
+    }
+    
+    .btn-gradient:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        background-position: right center;
+    }
+    
+    .btn-gradient.primary {
+        background: linear-gradient(135deg, #4a90e2, #6aa8e6);
+    }
+    
+    .btn-gradient.primary:hover {
+        background: linear-gradient(135deg, #357abd, #4a90e2);
+        box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+    }
+    
+    .btn-gradient.secondary {
+        background: linear-gradient(135deg, #17a2b8, #1ab6cf);
+    }
+    
+    .btn-gradient.secondary:hover {
+        background: linear-gradient(135deg, #138496, #17a2b8);
+        box-shadow: 0 5px 15px rgba(23, 162, 184, 0.3);
+    }
+    
+    .btn-gradient.warning {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    }
+    
+    .btn-gradient.warning:hover {
+        background: linear-gradient(135deg, #d97706, #f59e0b);
+        box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
+    }
+    
+    .btn-gradient.danger {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+    }
+    
+    .btn-gradient.danger:hover {
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
+    }
+    
+    /* 卡片头部样式 */
+    .card-header {
+        padding: 20px 24px !important;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+    
+    .card-header h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text-color);
+    }
+    
+    .card-header-gradient {
+        background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
+    }
+    
+    /* 统计卡片样式增强 */
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+    }
+    
+    .stat-card {
+        display: flex;
+        align-items: center;
+        padding: 24px;
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stats-card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .stats-card-hover:hover .stat-icon {
+        transform: scale(1.1);
+    }
+    
+    .stat-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        font-size: 1.75rem;
+        margin-right: 20px;
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-icon.primary {
+        background: linear-gradient(135deg, rgba(74, 144, 226, 0.15), rgba(74, 144, 226, 0.05));
+        color: var(--primary-color);
+    }
+    
+    .stat-icon.success {
+        background: linear-gradient(135deg, rgba(22, 163, 74, 0.15), rgba(22, 163, 74, 0.05));
+        color: var(--success-color);
+    }
+    
+    .stat-icon.warning {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+        color: var(--warning-color);
+    }
+    
+    .stat-content {
+        flex: 1;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-color);
+        line-height: 1.1;
+        margin-bottom: 4px;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    
+    .stat-trend {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0));
+    }
+    
+    /* 动画效果增强 */
+    .fade-in {
+        animation: fadeIn 0.6s ease forwards;
+        opacity: 0;
+    }
+    
+    @keyframes fadeIn {
+        from { 
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to { 
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* 响应式调整增强 */
+    @media (max-width: 768px) {
+        .welcome-info {
+            flex-direction: column;
+            text-align: center;
+            gap: 16px;
+        }
+        
+        .welcome-icon {
+            width: 70px;
+            height: 70px;
+            font-size: 2rem;
+        }
+        
+        .welcome-text h3 {
+            font-size: 1.3rem;
+        }
+        
+        .feature-cards {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .feature-card-hover .card-body {
+            padding: 24px 20px;
+        }
+        
+        .stats-cards {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .stat-card {
+            padding: 20px;
+        }
+        
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            margin-right: 16px;
+        }
+        
+        .stat-value {
+            font-size: 1.75rem;
+        }
+        
+        .card-header h3 {
+            font-size: 1.15rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .feature-cards {
+            margin: 16px 0;
+        }
+        
+        .card {
+            border-radius: 8px !important;
+        }
+        
+        .card-header {
+            padding: 16px !important;
+        }
+        
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+        }
+        
+        .btn-gradient {
+            padding: 10px 16px;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}

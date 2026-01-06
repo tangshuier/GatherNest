@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+    .form-control:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    }
+    .btn-submit {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+    }
+    .btn-submit:hover {
+        background-color: #0056b3;
+    }
+    .btn-cancel {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        text-decoration: none;
+        display: inline-block;
+        width: 100%;
+        text-align: center;
+        margin-top: 10px;
+    }
+    .btn-cancel:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+    .form-header {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #333;
+    }
+    .file-upload {
+        border: 2px dashed #ddd;
+        padding: 20px;
+        text-align: center;
+        border-radius: 4px;
+        background-color: white;
+    }
+    .file-upload input[type="file"] {
+        display: none;
+    }
+    .file-upload-label {
+        display: block;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    .file-upload-label:hover {
+        background-color: #e9ecef;
+    }
+    .current-file {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+    .two-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    @media (max-width: 768px) {
+        .two-column {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="form-container">
+        <h2 class="form-header">{{ '编辑项目' if edit_project else '添加新项目' }}</h2>
+        
+        <form action="{{ url_for('project.update_project') if edit_project else url_for('project.add_project') }}" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <!-- 添加会话ID字段，确保会话验证 -->
+            <input type="hidden" name="session_id" value="{{ current_session_id }}">
+            
+            <!-- 隐藏的项目ID（仅编辑时显示） -->
+            {% if edit_project %}
+            <input type="hidden" name="project_id" value="{{ edit_project.id }}">
+            {% endif %}
+            
+            <!-- 项目名称 -->
+            <div class="form-group">
+                <label class="form-label" for="name">项目名称 *</label>
+                <input type="text" id="name" name="name" class="form-control" 
+                       value="{{ edit_project.name if edit_project else '' }}" 
+                       placeholder="请输入项目名称" required>
+            </div>
+            
+            <!-- 两列布局：价格和项目类型 -->
+            <div class="two-column">
+                <!-- 项目价格 -->
+                <div class="form-group">
+                    <label class="form-label" for="price">项目价格</label>
+                    <input type="number" id="price" name="price" class="form-control" 
+                           value="{{ edit_project.price if edit_project else '' }}" 
+                           placeholder="请输入价格" step="0.01" min="0">
+                </div>
+                
+                <!-- 项目类型 -->
+                <div class="form-group">
+                    <label class="form-label" for="product_type">项目类型 *</label>
+                    <select id="product_type" name="product_type" class="form-control" required>
+                        <option value="custom" {% if edit_project and edit_project.product_type == 'custom' %}selected{% endif %}>定制项目</option>
+                        <option value="finished" {% if edit_project and edit_project.product_type == 'finished' %}selected{% endif %}>成品项目</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 两列布局：成本和单价 -->
+            <div class="two-column">
+                <!-- 成本 -->
+                <div class="form-group">
+                    <label class="form-label" for="cost">成本</label>
+                    <input type="number" id="cost" name="cost" class="form-control" 
+                           value="{{ edit_project.cost if edit_project else '' }}" 
+                           placeholder="请输入成本" step="0.01" min="0">
+                </div>
+                
+                <!-- 单价 -->
+                <div class="form-group">
+                    <label class="form-label" for="unit_price">单价</label>
+                    <input type="number" id="unit_price" name="unit_price" class="form-control" 
+                           value="{{ edit_project.unit_price if edit_project else '' }}" 
+                           placeholder="请输入单价" step="0.01" min="0">
+                </div>
+            </div>
+            
+            <!-- 项目组 -->
+            <div class="form-group">
+                <label class="form-label" for="group_name">项目组</label>
+                <input type="text" id="group_name" name="group_name" class="form-control" 
+                       value="{{ edit_project.group_name if edit_project else '' }}" 
+                       placeholder="请输入项目组名称">
+            </div>
+            
+            <!-- 负责人 -->
+            <div class="form-group">
+                <label class="form-label" for="engineer_id">负责人</label>
+                <select id="engineer_id" name="engineer_id" class="form-control">
+                    <option value="" {% if not edit_project or not edit_project.assigned_engineer_id %}selected{% endif %}>未分配</option>
+                    {% for engineer in engineers %}
+                    <option value="{{ engineer.id }}" {% if edit_project and edit_project.assigned_engineer_id == engineer.id %}selected{% endif %}>
+                        {{ engineer.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- 进度状态 -->
+                <div class="form-group">
+                    <label class="form-label" for="progress">进度状态</label>
+                    <select id="progress" name="progress" class="form-control">
+                        <option value="" {% if not edit_project or not edit_project.progress %}selected{% endif %}>未设置</option>
+                        <option value="无方案" {% if edit_project and edit_project.progress == '无方案' %}selected{% endif %}>无方案</option>
+                        <option value="需要方案" {% if edit_project and edit_project.progress == '需要方案' %}selected{% endif %}>需要方案</option>
+                        <option value="方案未确认" {% if edit_project and edit_project.progress == '方案未确认' %}selected{% endif %}>方案未确认</option>
+                        <option value="确认方案不制作" {% if edit_project and edit_project.progress == '确认方案不制作' %}selected{% endif %}>确认方案不制作</option>
+                        <option value="待制作" {% if edit_project and edit_project.progress == '待制作' %}selected{% endif %}>待制作</option>
+                        <option value="制作中" {% if edit_project and edit_project.progress == '制作中' %}selected{% endif %}>制作中</option>
+                        <option value="完成待确认" {% if edit_project and edit_project.progress == '完成待确认' %}selected{% endif %}>完成待确认</option>
+                        <option value="确认不发货" {% if edit_project and edit_project.progress == '确认不发货' %}selected{% endif %}>确认不发货</option>
+                        <option value="确认待发货" {% if edit_project and edit_project.progress == '确认待发货' %}selected{% endif %}>确认待发货</option>
+                        <option value="已完成" {% if edit_project and edit_project.progress == '已完成' %}selected{% endif %}>已完成</option>
+                        <option value="结单" {% if edit_project and edit_project.progress == '结单' %}selected{% endif %}>结单</option>
+                        <option value="售后修改" {% if edit_project and edit_project.progress == '售后修改' %}selected{% endif %}>售后修改</option>
+                    </select>
+                </div>
+                
+                <!-- 标签输入 -->
+                <div class="form-group">
+                    <label class="form-label" for="tags_input">标签（用逗号分隔）</label>
+                    <input type="text" id="tags_input" class="form-control" placeholder="输入标签，用逗号分隔" value="">
+                    <div id="tags_container" class="mt-2 flex-wrap d-flex gap-1">
+                        {% if edit_project and edit_project.tags %}
+                            {% for tag in edit_project.tags %}
+                                <span class="badge bg-info px-2 py-1 d-flex items-center">
+                                    {{ tag.name }}
+                                    <input type="hidden" name="tags[]" value="{{ tag.name }}">
+                                    <button type="button" class="close ml-1 text-white" onclick="removeTag(this)">&times;</button>
+                                </span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            
+            <!-- 项目描述 -->
+            <div class="form-group">
+                <label class="form-label" for="description">项目描述</label>
+                <textarea id="description" name="description" class="form-control" 
+                          rows="5" placeholder="请输入项目描述">
+                    {{ edit_project.description if edit_project else '' }}
+                </textarea>
+            </div>
+            
+            <!-- 文档上传 -->
+            <div class="form-group">
+                <label class="form-label">项目文档</label>
+                <div class="file-upload">
+                    <input type="file" id="document" name="document" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv">
+                    <label for="document" class="file-upload-label">点击上传文档或拖放文件到此处</label>
+                    
+                    <!-- 显示当前最新文档（仅编辑时显示） -->
+                    {% if edit_project and edit_project.documents %}
+                        {% set latest_doc = edit_project.documents|selectattr('type', 'equalto', 'document')|selectattr('is_latest', 'equalto', true)|first %}
+                        {% if latest_doc %}
+                        <div class="current-file">
+                            <p><strong>当前最新文档：</strong>{{ latest_doc.filename }}</p>
+                            <p><small>上传时间：{{ latest_doc.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+                            <p><small>版本：v{{ latest_doc.version }}</small></p>
+                            <p><small>提示：上传新文档将创建新版本</small></p>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 工程压缩包上传 -->
+            <div class="form-group">
+                <label class="form-label">工程压缩包</label>
+                <div class="file-upload">
+                    <input type="file" id="engineering_zip" name="engineering_zip" accept=".zip,.rar,.7z">
+                    <label for="engineering_zip" class="file-upload-label">点击上传工程压缩包或拖放文件到此处</label>
+                    
+                    <!-- 显示当前最新工程压缩包（仅编辑时显示） -->
+                    {% if edit_project and edit_project.documents %}
+                        {% set latest_zip = edit_project.documents|selectattr('type', 'equalto', 'engineering_zip')|selectattr('is_latest', 'equalto', true)|first %}
+                        {% if latest_zip %}
+                        <div class="current-file">
+                            <p><strong>当前最新工程压缩包：</strong>{{ latest_zip.filename }}</p>
+                            <p><small>上传时间：{{ latest_zip.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+                            <p><small>版本：v{{ latest_zip.version }}</small></p>
+                            <p><small>提示：上传新压缩包将创建新版本</small></p>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 提交和取消按钮 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px;">
+                <button type="submit" class="btn-submit">
+                    {{ '更新项目' if edit_project else '添加项目' }}
+                </button>
+                <a href="{{ url_for('project.projects_management') }}" class="btn-cancel">
+                    取消
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 标签功能
+    const tagsInput = document.getElementById('tags_input');
+    const tagsContainer = document.getElementById('tags_container');
+    
+    if (tagsInput) {
+        tagsInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                addTag();
+            }
+        });
+    }
+    
+    function addTag() {
+        if (!tagsInput) return;
+        
+        const tagText = tagsInput.value.trim();
+        if (tagText && !tagExists(tagText)) {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'badge bg-info px-2 py-1 d-flex items-center';
+            tagElement.innerHTML = `
+                ${tagText}
+                <input type="hidden" name="tags[]" value="${tagText}">
+                <button type="button" class="close ml-1 text-white" onclick="removeTag(this)">&times;</button>
+            `;
+            tagsContainer.appendChild(tagElement);
+            tagsInput.value = '';
+        }
+    }
+    
+    function tagExists(tagText) {
+        const existingTags = document.querySelectorAll('#tags_container input[name="tags[]"]');
+        for (let i = 0; i < existingTags.length; i++) {
+            if (existingTags[i].value.toLowerCase() === tagText.toLowerCase()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    function removeTag(button) {
+        const tagElement = button.parentElement;
+        tagElement.remove();
+    }
+    
+        // 为两个文件上传区域添加拖放功能
+        const fileUploads = document.querySelectorAll('.file-upload');
+        
+        fileUploads.forEach(upload => {
+            const fileInput = upload.querySelector('input[type="file"]');
+            const fileLabel = upload.querySelector('.file-upload-label');
+            
+            // 拖放事件
+            upload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                upload.style.borderColor = '#007bff';
+                fileLabel.style.backgroundColor = '#e9ecef';
+            });
+            
+            upload.addEventListener('dragleave', () => {
+                upload.style.borderColor = '#ddd';
+                fileLabel.style.backgroundColor = '#f8f9fa';
+            });
+            
+            upload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                upload.style.borderColor = '#ddd';
+                fileLabel.style.backgroundColor = '#f8f9fa';
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    // 显示选择的文件名
+                    const fileName = fileInput.files[0].name;
+                    fileLabel.textContent = `已选择: ${fileName}`;
+                }
+            });
+            
+            // 文件选择事件
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    const fileName = fileInput.files[0].name;
+                    fileLabel.textContent = `已选择: ${fileName}`;
+                } else {
+                    fileLabel.textContent = fileInput.id === 'document' ? 
+                        '点击上传文档或拖放文件到此处' : 
+                        '点击上传工程压缩包或拖放文件到此处';
+                }
+            });
+        });
+    
+    // 自动调整文本区域高度
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        // 初始化时调整
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+</script>
+{% endblock %}

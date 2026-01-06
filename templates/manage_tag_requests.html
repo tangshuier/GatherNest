@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}管理标签申请{% endblock %}
+
+{% block content %}
+<style>
+    .card {
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    .status-badge {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+    .btn-action {
+        padding: 4px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-color) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+</style>
+
+<div class="content-wrapper">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 内容区域 -->
+            <!-- 主内容区 -->
+            <main role="main" class="col-md-12 ml-sm-auto px-4">
+                <div class="pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">管理标签申请</h1>
+                </div>
+
+                <!-- 消息提示 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <!-- 添加标签按钮 -->
+                <div class="mb-4 text-right">
+                    <a href="{{ url_for('project_management.add_tag') }}" class="btn btn-primary" style="background-color: var(--primary-light); color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease; border: none;">
+                        <i class="fas fa-plus-circle"></i> 直接添加标签
+                    </a>
+                </div>
+                
+                <!-- 标签申请列表 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">待审核标签申请</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>申请ID</th>
+                                        <th>标签名称</th>
+                                        <th>申请人</th>
+                                        <th>申请理由</th>
+                                        <th>申请时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if requests %}
+                                    {% for req in requests %}
+                                    <tr>
+                                        <td>{{ req.id }}</td>
+                                        <td>{{ req.tag_name }}</td>
+                                        <td>{{ req.engineer.name }}</td>
+                                        <td>{{ req.reason[:100] }}{% if req.reason|length > 100 %}...{% endif %}</td>
+                                        <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <a href="{{ url_for('project_management.approve_tag', request_id=req.id) }}" class="btn btn-success btn-action" onclick="return confirm('确定要批准此标签申请吗？')">批准</a>
+                                                <a href="{{ url_for('project_management.reject_tag', request_id=req.id) }}" class="btn btn-danger btn-action" onclick="return confirm('确定要拒绝此标签申请吗？')">拒绝</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">暂无待审核的标签申请</td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 已存在标签列表 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">已存在标签</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>标签ID</th>
+                                        <th>标签名称</th>
+                                        <th>创建者</th>
+                                        <th>创建时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if tags %}
+                                    {% for tag in tags %}
+                                    <tr>
+                                        <td>{{ tag.id }}</td>
+                                        <td>{{ tag.name }}</td>
+                                        <td>{{ tag.created_by }}</td>
+                                        <td>{{ tag.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">暂无标签</td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为确认对话框添加更友好的交互
+            const actionButtons = document.querySelectorAll('.btn-action');
+            actionButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    // 确认逻辑已在HTML中通过onclick属性实现
+                });
+            });
+        });
+    </script>
+</div>
+</div>
+{% endblock %}
