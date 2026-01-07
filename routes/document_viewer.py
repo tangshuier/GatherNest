@@ -170,7 +170,7 @@ def clean_json_data(obj):
                 # 清理字符串中的特殊字符
                 clean_str = v.replace('\\', '/')
                 clean_str = clean_str.replace('\\\\', '/')
-                clean_str = clean_str.replace('\/', '/')
+
                 # 移除控制字符
                 for char in ['\x00', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07', 
                             '\x08', '\x0b', '\x0c', '\x0e', '\x0f', '\x10', '\x11', '\x12',
@@ -243,7 +243,7 @@ def _handle_archive_document(document, file_extension):
     
     if not file_structure:
         flash('无法解析压缩文件结构', 'danger')
-        return redirect(url_for('project.projects_management'))
+        return redirect(url_for('project_management.projects_list'))
 
     # 清理数据以确保JSON序列化安全
     clean_file_structure = clean_json_data(file_structure)
@@ -261,12 +261,12 @@ def _handle_archive_document(document, file_extension):
         except json.JSONDecodeError as verify_error:
             logger.error(f"JSON验证失败: {str(verify_error)}")
             flash('生成的文件结构格式错误', 'danger')
-            return redirect(url_for('project.projects_management'))
+            return redirect(url_for('project_management.projects_list'))
         
     except Exception as e:
         logger.error(f"文件结构生成错误: {str(e)}")
         flash(f'文件结构生成错误: {str(e)}', 'danger')
-        return redirect(url_for('project.projects_management'))
+        return redirect(url_for('project_management.projects_list'))
     
     # 渲染模板
     return render_template('document_viewer/archive_viewer.html', 
@@ -322,7 +322,7 @@ def _handle_download_document(document):
     except Exception as e:
         logger.error(f"发送文件失败: {str(e)}")
         flash(f'下载文件时出错: {str(e)}', 'danger')
-        return redirect(url_for('project.projects_management'))
+        return redirect(url_for('project_management.projects_list'))
 
 # 查看压缩包内文件
 @document_viewer_bp.route('/view_archive_file/<int:document_id>')
@@ -342,7 +342,7 @@ def view_archive_file(document_id):
         document = Document.query.get(document_id)
         if not document:
             flash('文档不存在', 'danger')
-            return redirect(url_for('project.projects_management'))
+            return redirect(url_for('project_management.projects_list'))
         
         # 检查文件是否存在
         if not os.path.exists(document.filepath):
@@ -408,7 +408,7 @@ def download_archive_file_route(document_id):
         document = Document.query.get(document_id)
         if not document:
             flash('文档不存在', 'danger')
-            return redirect(url_for('project.projects_management'))
+            return redirect(url_for('project_management.projects_list'))
         
         # 检查文件是否存在
         if not os.path.exists(document.filepath):
@@ -436,7 +436,7 @@ def _normalize_path(path):
         normalized_path = normalized_path.replace('\\', '/')
     if '\\\\' in normalized_path:
         normalized_path = normalized_path.replace('\\\\', '/')
-    normalized_path = normalized_path.replace('\/', '/')
+
     return normalized_path
 
 def _extract_from_archive(archive_path, file_path):
@@ -499,11 +499,11 @@ def _create_and_send_temp_file(file_content, file_path):
             os.unlink(temp_file_path)
         except Exception:
             pass
-        return redirect(url_for('project.projects_management'))
+        return redirect(url_for('project_management.projects_list'))
 
 # 文档列表路由
 @document_viewer_bp.route('/documents')
 @login_required
 def documents():
     """重定向到项目管理页面"""
-    return redirect(url_for('project.projects_management'))
+    return redirect(url_for('project_management.projects_list'))

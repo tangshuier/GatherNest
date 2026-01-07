@@ -1,11 +1,152 @@
 {% extends 'base.html' %}
 
-{% block title %}成品管理系统{% endblock %}
+{% block title %}添加员工账户 - 成品管理系统{% endblock %}
+
 {% block page_title %}添加员工账户{% endblock %}
 
 {% block content %}
+<div class="page-content">
+    <div class="pt-3 pb-2 mb-3 border-bottom d-flex justify-content-between align-items-center">
+        <h1 class="h2">添加员工账户</h1>
+        <a href="/admin/users" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回
+        </a>
+    </div>
+
+    <!-- 消息提示 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <!-- 添加员工表单 -->
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="/admin/add_engineer" class="admin-form" id="engineerForm">
+                {{ form.hidden_tag() }}
+                
+                <div class="mb-4">
+                    <label class="form-label">员工姓名</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-user"></i>
+                            </span>
+                        </div>
+                        {{ form.name(class='form-control', placeholder='请输入员工姓名', autocomplete='name') }}
+                    </div>
+                    {% for error in form.name.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">用户名</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-user-circle"></i>
+                            </span>
+                        </div>
+                        {{ form.username(class='form-control', placeholder='请输入用户名', autocomplete='username') }}
+                    </div>
+                    {% for error in form.username.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                    <small class="text-muted">用户名只能包含字母和数字</small>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">密码</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                        </div>
+                        {{ form.password(class='form-control', placeholder='请输入密码', id='password', autocomplete='new-password') }}
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary toggle-password" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% for error in form.password.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                    <small class="text-muted">密码长度不能少于8位</small>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">确认密码</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-lock-check"></i>
+                            </span>
+                        </div>
+                        {{ form.confirm_password(class='form-control', placeholder='请再次输入密码', id='confirmPassword', autocomplete='new-password') }}
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary toggle-password" id="toggleConfirmPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% for error in form.confirm_password.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">角色级别</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-shield-alt"></i>
+                            </span>
+                        </div>
+                        {{ form.role_level(class='form-control', placeholder='请选择角色级别', id='role_level') }}
+                    </div>
+                    {% for error in form.role_level.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="mb-4" id="role_detail_div">
+                    <label class="form-label">详细角色 (正式员工选择)</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-briefcase"></i>
+                            </span>
+                        </div>
+                        {{ form.role_detail(class='form-control', placeholder='请选择详细角色', id='role_detail') }}
+                    </div>
+                    {% for error in form.role_detail.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-end mt-5">
+                    {{ form.submit(class='btn btn-primary') }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+    // 表单验证和交互增强
     document.addEventListener('DOMContentLoaded', function() {
+        // 角色级别和详细角色的联动
         const roleLevelSelect = document.getElementById('role_level');
         const roleDetailDiv = document.getElementById('role_detail_div');
         const roleDetailSelect = document.getElementById('role_detail');
@@ -27,59 +168,73 @@
                 roleDetailSelect.removeAttribute('required');
             }
         }
+        
+        // 密码显示/隐藏功能
+        const togglePassword = document.getElementById('togglePassword');
+        const password = document.getElementById('password');
+        const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+        
+        togglePassword.addEventListener('click', function() {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('fa-eye');
+            this.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+        
+        toggleConfirmPassword.addEventListener('click', function() {
+            const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            confirmPassword.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('fa-eye');
+            this.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+        
+        // 表单验证
+        const form = document.getElementById('engineerForm');
+        const passwordField = document.getElementById('password');
+        const confirmPasswordField = document.getElementById('confirmPassword');
+        
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // 检查密码是否匹配
+            if (passwordField.value !== confirmPasswordField.value) {
+                isValid = false;
+                const parent = confirmPasswordField.closest('.mb-4');
+                const existingError = parent.querySelector('.text-danger');
+                if (existingError) {
+                    existingError.textContent = '两次输入的密码不匹配';
+                } else {
+                    const errorElement = document.createElement('span');
+                    errorElement.className = 'text-danger small';
+                    errorElement.textContent = '两次输入的密码不匹配';
+                    parent.appendChild(errorElement);
+                }
+                
+                // 添加Bootstrap错误样式
+                confirmPasswordField.classList.add('is-invalid');
+                setTimeout(() => {
+                    confirmPasswordField.classList.remove('is-invalid');
+                }, 500);
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+        
+        // 实时清除错误消息
+        const inputs = document.querySelectorAll('.form-control');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                const parent = this.closest('.mb-4');
+                const errorElement = parent.querySelector('.text-danger');
+                if (errorElement) {
+                    errorElement.remove();
+                }
+                this.classList.remove('is-invalid');
+            });
+        });
     });
 </script>
-<form method="POST" action="/admin/add_engineer">
-    {{ form.hidden_tag() }}
-    <div class="form-group">
-        <label>员工姓名:</label>
-        {{ form.name(class='form-control') }}
-        {% for error in form.name.errors %}
-            <span class="text-danger">{{ error }}</span>
-        {% endfor %}
-    </div>
-    <div class="form-group">
-        <label>用户名:</label>
-        {{ form.username(class='form-control') }}
-        {% for error in form.username.errors %}
-            <span class="text-danger">{{ error }}</span>
-        {% endfor %}
-        <small>用户名只能包含字母和数字</small>
-    </div>
-    <div class="form-group">
-        <label>密码:</label>
-        {{ form.password(class='form-control') }}
-        {% for error in form.password.errors %}
-            <span class="text-danger">{{ error }}</span>
-        {% endfor %}
-        <small>密码长度不能少于8位</small>
-    </div>
-    <div class="form-group">
-        <label>确认密码:</label>
-        {{ form.confirm_password(class='form-control') }}
-        {% for error in form.confirm_password.errors %}
-            <span class="text-danger">{{ error }}</span>
-        {% endfor %}
-    </div>
-    <div class="form-group">
-        <label>角色级别:</label>
-        {{ form.role_level(class='form-control') }}
-        {% for error in form.role_level.errors %}
-            <span class="text-danger">{{ error }}</span>
-        {% endfor %}
-    </div>
-    <div class="form-group" id="role_detail_div">
-        <label>详细角色 (正式员工选择):</label>
-        {{ form.role_detail(class='form-control') }}
-        {% for error in form.role_detail.errors %}
-            <span class="text-danger">{{ error }}</span>
-        {% endfor %}
-    </div>
-    <div style="text-align: center; margin-top: 1.5rem;">
-        {{ form.submit(class='btn-primary') }}
-        <a href="/admin/users">
-            <button type="button" class="btn-secondary">返回</button>
-        </a>
-    </div>
-</form>
 {% endblock %}

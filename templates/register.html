@@ -271,6 +271,90 @@
             }
         }
 
+        /* 右上角浮动提示窗口样式 */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            width: 350px;
+            max-width: calc(100% - 40px);
+        }
+
+        .notification {
+            position: relative;
+            padding: 15px 40px 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideInRight 0.3s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .notification.alert-info {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .notification.alert-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .notification.alert-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .notification.alert-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .notification-content {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .notification-close {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        
         /* 响应式设计 */
         @media (max-width: 768px) {
             body {
@@ -291,10 +375,32 @@
                 flex-direction: column;
                 gap: 10px;
             }
+            
+            .notification-container {
+                width: calc(100% - 40px);
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 显示flash消息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="notification-container">
+    {% for category, msg in messages %}
+    <div class="notification alert-{{ category if category != 'message' else 'info' }}">
+        <div class="notification-content">
+            {{ msg }}
+        </div>
+        <button type="button" class="notification-close" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    
     <div class="register-container">
         <!-- 左侧欢迎信息 -->
         <div class="welcome-section">
@@ -304,13 +410,14 @@
         
         <!-- 右侧注册表单 -->
         <div class="register-form-container">
+            
             <h2>工程师注册</h2>
             <form method="POST" action="/register">
                 {{ form.hidden_tag() }}
                 
                 <div class="form-group">
                     {{ form.name.label }}
-                    {{ form.name(size=32, class="form-control", placeholder="请输入您的姓名") }}
+                    {{ form.name(size=32, class="form-control", placeholder="请输入您的姓名", autocomplete="name") }}
                     {% for error in form.name.errors %}
                         <span class="text-danger">{{ error }}</span>
                     {% endfor %}
@@ -319,7 +426,7 @@
                 
                 <div class="form-group">
                     {{ form.username.label }}
-                    {{ form.username(size=32, class="form-control", placeholder="请设置用户名") }}
+                    {{ form.username(size=32, class="form-control", placeholder="请设置用户名", autocomplete="username") }}
                     {% for error in form.username.errors %}
                         <span class="text-danger">{{ error }}</span>
                     {% endfor %}
@@ -328,7 +435,7 @@
                 
                 <div class="form-group">
                     {{ form.password.label }}
-                    {{ form.password(size=32, class="form-control", placeholder="请设置密码") }}
+                    {{ form.password(size=32, class="form-control", placeholder="请设置密码", autocomplete="new-password") }}
                     {% for error in form.password.errors %}
                         <span class="text-danger">{{ error }}</span>
                     {% endfor %}
@@ -337,7 +444,7 @@
                 
                 <div class="form-group">
                     {{ form.confirm_password.label }}
-                    {{ form.confirm_password(size=32, class="form-control", placeholder="请再次输入密码") }}
+                    {{ form.confirm_password(size=32, class="form-control", placeholder="请再次输入密码", autocomplete="new-password") }}
                     {% for error in form.confirm_password.errors %}
                         <span class="text-danger">{{ error }}</span>
                     {% endfor %}
@@ -498,12 +605,45 @@
                     from { opacity: 0; transform: translateY(-5px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
+                
+                @keyframes slideOutRight {
+                    from {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: translateX(100%);
+                    }
+                }
+                
                 .input-error {
                     border-color: var(--error-color) !important;
                     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
                 }
             `;
             document.head.appendChild(style);
+            
+            // 初始化flash消息关闭功能
+            document.querySelectorAll('.notification-close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function () {
+                    const notification = this.closest('.notification');
+                    notification.style.animation = 'slideOutRight 0.3s ease forwards';
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                });
+            });
+            
+            // 自动关闭所有类型的浮动提示
+            setTimeout(() => {
+                document.querySelectorAll('.notification').forEach(notification => {
+                    notification.style.animation = 'slideOutRight 0.3s ease forwards';
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                });
+            }, 5000);
         });
     </script>
 </body>

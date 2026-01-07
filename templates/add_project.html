@@ -56,46 +56,14 @@
 
 <div class="page-content">
     <div class="row">
-        <!-- 侧边导航 -->
-        <div class="col-md-3">
-            <div class="custom-sidebar">
-                <h6>功能导航</h6>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('project_management.projects_list') }}">
-                            <i class="fas fa-list"></i>
-                            项目列表
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('project_management.add_project') }}">
-                            <i class="fas fa-plus-circle"></i>
-                            添加项目
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('project_management.request_tag') }}">
-                            <i class="fas fa-tag"></i>
-                            申请标签
-                        </a>
-                    </li>
-                    {% if current_user.role == 'super_admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('project_management.manage_tag_requests') }}">
-                            <i class="fas fa-check-circle"></i>
-                            管理标签申请
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
+        <!-- 主内容区 -->
+        <div class="col-md-12">
+            <div class="pt-3 pb-2 mb-3 border-bottom d-flex justify-content-between align-items-center">
+                <h1 class="h2">添加项目</h1>
+                <button class="btn btn-secondary" onclick="window.history.back()">
+                    <i class="fas fa-arrow-left"></i> 返回上一级
+                </button>
             </div>
-        </div>
-
-            <!-- 主内容区 -->
-            <div class="col-md-9">
-                <div class="pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">添加项目</h1>
-                </div>
 
                 <!-- 消息提示 -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -211,7 +179,6 @@
                         </div>
                     </form>
                 </div>
-            </main>
         </div>
     </div>
 
@@ -230,6 +197,5 @@
             });
         });
     </script>
-</div>
 </div>
 {% endblock %}

@@ -106,8 +106,8 @@ def add_project():
     # 允许超级管理员(role_level=0或role='super_admin')或工程师添加项目
     if not (current_user.role_level == 0 or current_user.role == 'super_admin' or engineer):
         flash('没有权限添加项目', 'danger')
-        # 上传完成后返回到项目列表页面，并带上项目ID以便可以重新打开该项目的详情模态框
-    return redirect(url_for('project_management.projects_list', project_id=project_id))
+        # 上传完成后返回到项目列表页面
+        return redirect(url_for('project_management.projects_list'))
     
     tags = Tag.query.all()
     
@@ -204,8 +204,8 @@ def edit_project(project_id):
     if not (current_user.role_level == 0 or current_user.role == 'super_admin' or 
            (engineer and project.assigned_engineer_id == engineer.id)):
         flash('没有权限编辑此项目', 'danger')
-        # 上传完成后返回到项目列表页面，并带上项目ID以便可以重新打开该项目的详情模态框
-    return redirect(url_for('project_management.projects_list', project_id=project_id))
+        # 上传完成后返回到项目列表页面
+        return redirect(url_for('project_management.projects_list'))
     
     tags = Tag.query.all()
     selected_tags = [str(tag.id) for tag in project.tags]
@@ -345,16 +345,15 @@ def upload_materials(project_id):
                 success_count += 1
                 
                 # 创建数据库记录
-                material = Material(
+                document = Document(
                     project_id=project_id,
                     filename=filename,
-                    file_path=os.path.relpath(file_path, PROJECTS_DIR),
-                    file_type=file_type,
-                    document_type=document_type,
+                    filepath=os.path.relpath(file_path, PROJECTS_DIR),
+                    type=file_type,
                     uploaded_by=current_user.id,
                     uploaded_at=datetime.now()
                 )
-                db.session.add(material)
+                db.session.add(document)
                 
             except Exception as e:
                 error_count += 1

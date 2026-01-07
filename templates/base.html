@@ -1198,11 +1198,97 @@
             };
         })();
         
+        // 立即定义全局错误处理器，确保在页面加载早期就能捕获错误
+        (function() {
+            // 立即定义Python布尔值修复
+            window.False = false;
+            window.True = true;
+            
+            // 立即定义全局错误处理器
+            const originalErrorHandler = window.onerror;
+            window.onerror = function(message, source, lineno, colno, error) {
+                // 忽略已知的可疑错误
+                if (source && source.includes('index.global.js')) {
+                    return true;
+                }
+                if (message && (message.includes('index.global') || message.includes('40003'))) {
+                    return true;
+                }
+                // 调用原始处理器（如果有）
+                if (originalErrorHandler) {
+                    return originalErrorHandler.apply(this, arguments);
+                }
+                return true;
+            };
+            
+            // 立即定义Promise错误处理器
+            const originalRejectionHandler = window.onunhandledrejection;
+            window.onunhandledrejection = function(event) {
+                // 忽略已知的可疑错误
+                if (event.reason && (event.reason.code === 40003 || 
+                    typeof event.reason === 'string' && 
+                    (event.reason.includes('index.global') || event.reason.includes('40003')))) {
+                    event.preventDefault();
+                    return true;
+                }
+                // 调用原始处理器（如果有）
+                if (originalRejectionHandler) {
+                    return originalRejectionHandler.apply(this, arguments);
+                }
+                event.preventDefault();
+                return true;
+            };
+        })();
+
         // 防止DOM操作注入
         (function() {
+            // 立即定义安全检查函数
+            window.isSafeCode = function(code) {
+                const suspiciousPatterns = [
+                    'index.global.js', 'index.global', 'mount', 'wR', 'MO', '$9', 
+                    'Dn', 'mg', 've', '40003', 'useVersion', 'extension: edge'
+                ];
+                return !suspiciousPatterns.some(pattern => code.includes(pattern));
+            };
+            
             // 监控DOMContentLoaded事件，确保只有合法的监听器被执行
             const originalAddEventListener = EventTarget.prototype.addEventListener;
             EventTarget.prototype.addEventListener = function(type, listener, options) {
+                // 对于error和unhandledrejection事件，增强处理
+                if (type === 'error') {
+                    const enhancedListener = function(event) {
+                        // 忽略已知的可疑错误
+                        if (event.filename && event.filename.includes('index.global.js')) {
+                            return true;
+                        }
+                        if (event.message && (event.message.includes('index.global') || event.message.includes('40003'))) {
+                            return true;
+                        }
+                        try {
+                            return listener(event);
+                        } catch (e) {
+                            console.error('error监听器执行失败:', e);
+                        }
+                    };
+                    return originalAddEventListener.call(this, type, enhancedListener, options);
+                }
+                if (type === 'unhandledrejection') {
+                    const enhancedListener = function(event) {
+                        // 忽略已知的可疑错误
+                        if (event.reason && (event.reason.code === 40003 || 
+                            typeof event.reason === 'string' && 
+                            (event.reason.includes('index.global') || event.reason.includes('40003')))) {
+                            event.preventDefault();
+                            return true;
+                        }
+                        try {
+                            return listener(event);
+                        } catch (e) {
+                            console.error('unhandledrejection监听器执行失败:', e);
+                        }
+                    };
+                    return originalAddEventListener.call(this, type, enhancedListener, options);
+                }
                 // 对于DOMContentLoaded事件，确保监听器是安全的
                 if (type === 'DOMContentLoaded' && typeof listener === 'function') {
                     const safeListener = function(event) {
@@ -1216,26 +1302,68 @@
                 }
                 return originalAddEventListener.apply(this, arguments);
             };
+            
+            // 重写document.write和document.writeln以防止动态注入
+            const originalWrite = document.write;
+            document.write = function(html) {
+                if (typeof html === 'string' && !window.isSafeCode(html)) {
+                    console.warn('阻止执行可疑的document.write:', html.substring(0, 100) + '...');
+                    return;
+                }
+                try {
+                    return originalWrite.apply(this, arguments);
+                } catch (e) {
+                    console.error('document.write执行失败:', e);
+                }
+            };
+            document.writeln = function(text) {
+                document.write(text + '\n');
+            };
+            
+            // 重写appendChild和insertBefore
+            const originalAppendChild = Element.prototype.appendChild;
+            Element.prototype.appendChild = function(child) {
+                if (child && child.tagName === 'SCRIPT' && child.src && !window.isSafeCode(child.src)) {
+                    console.warn('阻止添加可疑的script标签:', child.src);
+                    return child;
+                }
+                try {
+                    return originalAppendChild.call(this, child);
+                } catch (e) {
+                    console.error('appendChild执行失败:', e);
+                }
+            };
+            
+            const originalInsertBefore = Element.prototype.insertBefore;
+            Element.prototype.insertBefore = function(newNode, referenceNode) {
+                if (newNode && newNode.tagName === 'SCRIPT' && newNode.src && !window.isSafeCode(newNode.src)) {
+                    console.warn('阻止插入可疑的script标签:', newNode.src);
+                    return newNode;
+                }
+                try {
+                    return originalInsertBefore.call(this, newNode, referenceNode);
+                } catch (e) {
+                    console.error('insertBefore执行失败:', e);
+                }
+            };
         })();
 
         // 增强的全局错误处理器
         window.addEventListener('error', function(event) {
             // 忽略已知的可疑错误
             if (event.filename && event.filename.includes('index.global.js')) {
-                console.warn('拦截到可疑脚本错误，已忽略');
+                return true;
+            }
+            if (event.message && (event.message.includes('index.global') || event.message.includes('40003'))) {
                 return true;
             }
             
             // 处理Python布尔值导致的错误
             if (event.message && (event.message.includes('False is not defined') || event.message.includes('True is not defined'))) {
-                console.warn('检测到Python布尔值错误，正在注入修复...');
-                // 在全局作用域中定义JavaScript的布尔值
-                try {
-                    window.False = false;
-                    window.True = true;
-                } catch (e) {
-                    console.error('注入修复失败:', e);
-                }
+                console.warn('检测到Python布尔值错误，已修复');
+                // 确保Python布尔值已定义
+                window.False = false;
+                window.True = true;
                 return true;
             }
             
@@ -1244,7 +1372,6 @@
             // 对于语法错误，尝试定位并处理
             if (event.message.includes('Unexpected token')) {
                 console.warn('检测到语法错误，正在尝试恢复...');
-                // 可以在这里添加额外的恢复逻辑
             }
             
             // 阻止错误传播
@@ -1257,7 +1384,6 @@
             if (event.reason && (event.reason.code === 40003 || 
                 typeof event.reason === 'string' && 
                 (event.reason.includes('index.global') || event.reason.includes('40003')))) {
-                console.warn('拦截到可疑Promise错误，已忽略');
                 event.preventDefault();
                 return true;
             }
@@ -1267,5 +1393,6 @@
             return true;
         });
     </script>
+    <script src="{{ url_for('static', filename='js/project_utils.js') }}"></script>
 </body>
 </html>

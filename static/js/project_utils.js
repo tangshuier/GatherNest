@@ -57,29 +57,25 @@ function confirmDelete(projectId, projectName) {
 
 // 显示项目详情函数
 function showProjectDetails(projectId) {
-    console.log('====== 详细按钮点击事件触发 ======');
-    console.log('项目ID:', projectId, '类型:', typeof projectId);
+    // 确保projectId是字符串类型
+    projectId = String(projectId);
     
     try {
-        console.log('开始执行showProjectDetails函数');
-        
         let currentProject = null;
         
         // 1. 首先尝试从卡片视图获取项目数据（优先考虑卡片视图）
-        console.log('尝试从卡片视图获取项目数据');
-        
         // 尝试多种选择器获取卡片元素
         let projectCard = null;
         
         // 方法1：通过详情按钮查找
         const detailButton = document.querySelector(`.view-project-details[data-project-id="${projectId}"]`);
         if (detailButton) {
-            projectCard = detailButton.closest('.product-card, .project-card, .card-item');
+            projectCard = detailButton.closest('.product-card, .project-card, .card-item, .product-item');
         }
         
         // 方法2：直接通过数据属性查找 - 增加更多可能的选择器
         if (!projectCard) {
-            projectCard = document.querySelector(`.product-card[data-project-id="${projectId}"], .project-card[data-project-id="${projectId}"], .card-item[data-project-id="${projectId}"], [data-project-id="${projectId}"]`);
+            projectCard = document.querySelector(`.product-card[data-project-id="${projectId}"], .project-card[data-project-id="${projectId}"], .card-item[data-project-id="${projectId}"], .product-item[data-project-id="${projectId}"], [data-project-id="${projectId}"]`);
         }
         
         // 方法3：通过详情按钮中包含的卡片查找
@@ -87,7 +83,7 @@ function showProjectDetails(projectId) {
             const detailsButtons = document.querySelectorAll('.view-project-details');
             detailsButtons.forEach(btn => {
                 if (btn.getAttribute('data-project-id') === projectId.toString()) {
-                    const card = btn.closest('.product-card, .project-card, .card-item');
+                    const card = btn.closest('.product-card, .project-card, .card-item, .product-item');
                     if (card) projectCard = card;
                 }
             });
@@ -95,20 +91,22 @@ function showProjectDetails(projectId) {
         
         // 方法4：尝试通过按钮点击事件查找
         if (!projectCard && window.event && window.event.currentTarget) {
-            console.log('通过事件目标查找卡片');
             const eventTarget = window.event.currentTarget;
-            projectCard = eventTarget.closest('.product-card, .project-card, .card-item, [data-project-id]');
+            projectCard = eventTarget.closest('.product-card, .project-card, .card-item, .product-item, [data-project-id]');
         }
         
         // 如果找到卡片元素，从卡片中提取项目信息
         if (projectCard) {
-            console.log('找到项目卡片，提取项目信息');
-            
             // 从卡片中提取项目信息 - 支持更多可能的选择器
-            const projectName = (
-                projectCard.querySelector('.product-title, .card-title, h5, h4, h3, .project-name, .title')?.textContent.trim() ||
-                '未命名项目'
-            );
+            // 专门针对admin.html的产品名称提取
+            let projectName = '未命名项目';
+            const productNameElement = projectCard.querySelector('.product-name span');
+            if (productNameElement) {
+                projectName = productNameElement.textContent.trim();
+            } else {
+                // 其他页面的通用选择器
+                projectName = projectCard.querySelector('.product-title, .card-title, h5, h4, h3, .project-name, .title')?.textContent.trim() || '未命名项目';
+            }
             
             const projectType = (
                 projectCard.querySelector('.project-type-badge, .project-type, .type, .category, [data-field="type"]')?.textContent.trim() ||
@@ -188,24 +186,30 @@ function showProjectDetails(projectId) {
                 }
             }
             
-            // 获取日期信息 - 增强查找逻辑
+            // 获取日期信息 - 专门针对admin.html优化
             let dateInfo = '';
-            const dateSelectors = ['.product-date', '.project-date', '.date', 'time', '.create-time', '.update-time', '[data-field="date"]'];
-            for (const selector of dateSelectors) {
-                const dateElement = projectCard.querySelector(selector);
-                if (dateElement && dateElement.textContent.trim()) {
-                    dateInfo = dateElement.textContent.trim();
-                    break;
+            const productDateElement = projectCard.querySelector('.product-date span');
+            if (productDateElement) {
+                dateInfo = productDateElement.textContent.trim();
+            } else {
+                // 其他页面的通用选择器
+                const dateSelectors = ['.project-date', '.date', 'time', '.create-time', '.update-time', '[data-field="date"]'];
+                for (const selector of dateSelectors) {
+                    const dateElement = projectCard.querySelector(selector);
+                    if (dateElement && dateElement.textContent.trim()) {
+                        dateInfo = dateElement.textContent.trim();
+                        break;
+                    }
                 }
-            }
-            
-            // 如果没找到，尝试查找包含日期格式的文本
-            if (!dateInfo) {
-                const textContents = projectCard.innerText;
-                // 增强的日期格式匹配
-                const dateMatch = textContents.match(/\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4}|\d{4}年\d{1,2}月\d{1,2}日/);
-                if (dateMatch) {
-                    dateInfo = dateMatch[0];
+                
+                // 如果没找到，尝试查找包含日期格式的文本
+                if (!dateInfo) {
+                    const textContents = projectCard.innerText;
+                    // 增强的日期格式匹配
+                    const dateMatch = textContents.match(/\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4}|\d{4}年\d{1,2}月\d{1,2}日/);
+                    if (dateMatch) {
+                        dateInfo = dateMatch[0];
+                    }
                 }
             }
             
@@ -222,14 +226,10 @@ function showProjectDetails(projectId) {
                 tags: tags,
                 date: dateInfo
             };
-            
-            console.log('从卡片获取的项目数据:', currentProject);
         }
         
         // 2. 如果卡片视图中没有找到，尝试从表格视图获取
         if (!currentProject) {
-            console.log('卡片视图中未找到数据，尝试从表格视图获取');
-            
             // 首先，直接为所有表格行添加data-project-id属性（如果尚未添加）
             document.querySelectorAll('tbody tr').forEach(row => {
                 const idCell = row.querySelector('td:first-child + td'); // 获取ID列（复选框后面的列）
@@ -243,7 +243,6 @@ function showProjectDetails(projectId) {
             
             // 从表格中获取项目数据 - 增加更多可能的选择器
             const projectElements = document.querySelectorAll(`tr[data-project-id="${projectId}"], tr[id="project-${projectId}"]`);
-            console.log('找到的表格元素数量:', projectElements.length);
             
             if (projectElements.length > 0) {
                 const targetRow = projectElements[0];
@@ -696,7 +695,6 @@ function showProjectDetails(projectId) {
                 document.body.appendChild(tempContainer);
                 document.body.classList.add('modal-open');
             }
-        }
     } catch (error) {
         console.error('====== 显示项目详情时出错 ======');
         console.error('错误对象:', error);
@@ -707,20 +705,15 @@ function showProjectDetails(projectId) {
     } finally {
         // 阻止事件冒泡
         if (window.event) {
-            console.log('阻止事件冒泡');
             window.event.stopPropagation();
         }
-        console.log('====== 函数执行完毕 ======');
     }
 }
 
 // 模态框显示函数
 function showModal(modalId) {
-    console.log('显示模态框:', modalId);
-    
     // 首先尝试jQuery方法
     if (typeof $ !== 'undefined') {
-        console.log('使用jQuery显示模态框:', modalId);
         $('#' + modalId).modal('show');
         return;
     }

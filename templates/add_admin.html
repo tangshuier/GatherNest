@@ -2,415 +2,128 @@
 
 {% block title %}添加管理员账户 - 成品管理系统{% endblock %}
 
-<style>
-    /* 表单容器样式 */
-    .admin-form-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 2rem 1rem;
-        min-height: 60vh;
-    }
-    
-    .form-card {
-        background-color: var(--card-bg);
-        border-radius: 16px;
-        padding: 2rem;
-        width: 100%;
-        max-width: 500px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        box-shadow: var(--card-shadow);
-    }
-    
-    .form-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    }
-    
-    .form-card:hover {
-        box-shadow: var(--card-shadow-hover);
-    }
-    
-    /* 表单头部样式 */
-    .form-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    
-    .form-icon {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, rgba(74, 144, 226, 0.15), rgba(74, 144, 226, 0.05));
-        color: var(--primary-color);
-        font-size: 2.5rem;
-        margin: 0 auto 1.5rem;
-        transition: transform 0.3s ease;
-    }
-    
-    .form-header:hover .form-icon {
-        transform: scale(1.05);
-    }
-    
-    .form-header h3 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--text-color);
-    }
-    
-    .form-header p {
-        margin: 0;
-        color: var(--text-secondary);
-        font-size: 0.95rem;
-    }
-    
-    /* 表单组样式 */
-    .form-group {
-        margin-bottom: 1.5rem;
-        position: relative;
-    }
-    
-    .form-label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-        color: var(--text-color);
-        font-size: 0.95rem;
-    }
-    
-    .input-group {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-    
-    .input-icon {
-        position: absolute;
-        left: 16px;
-        color: var(--text-secondary);
-        font-size: 1rem;
-        z-index: 1;
-        transition: color 0.3s ease;
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 12px 16px 12px 44px;
-        border: 2px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 0.95rem;
-        color: var(--text-color);
-        background-color: var(--card-bg);
-        transition: all 0.3s ease;
-    }
-    
-    .form-control:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-    }
-    
-    .form-control:focus + .input-icon,
-    .form-control:not(:placeholder-shown) + .input-icon {
-        color: var(--primary-color);
-    }
-    
-    /* 密码切换按钮 */
-    .toggle-password {
-        position: absolute;
-        right: 12px;
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        padding: 6px;
-        border-radius: 4px;
-        transition: all 0.3s ease;
-    }
-    
-    .toggle-password:hover {
-        background-color: var(--hover-bg);
-        color: var(--primary-color);
-    }
-    
-    /* 提示和错误消息 */
-    .form-hint {
-        display: block;
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-    }
-    
-    .error-message {
-        display: block;
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-        color: var(--danger-color);
-        animation: slideIn 0.3s ease;
-    }
-    
-    /* 输入错误状态 */
-    .input-error {
-        animation: shake 0.5s ease;
-        border-color: var(--danger-color) !important;
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-        20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* 按钮样式 */
-    .form-actions {
-        display: flex;
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-    
-    .btn-gradient {
-        flex: 1;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        color: white;
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
-        font-weight: 500;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-        background-size: 200% auto;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .btn-gradient::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s ease;
-    }
-    
-    .btn-gradient:hover::before {
-        left: 100%;
-    }
-    
-    .btn-gradient:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-        background-position: right center;
-    }
-    
-    .btn-gradient.primary {
-        background: linear-gradient(135deg, #4a90e2, #6aa8e6);
-    }
-    
-    .btn-gradient.primary:hover {
-        background: linear-gradient(135deg, #357abd, #4a90e2);
-        box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
-    }
-    
-    .btn-gradient.secondary {
-        background: linear-gradient(135deg, #6c757d, #868e96);
-    }
-    
-    .btn-gradient.secondary:hover {
-        background: linear-gradient(135deg, #5a6268, #6c757d);
-        box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
-    }
-    
-    /* 动画效果 */
-    .fade-in {
-        animation: fadeIn 0.6s ease forwards;
-        opacity: 0;
-    }
-    
-    @keyframes fadeIn {
-        from { 
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to { 
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    /* 响应式设计 */
-    @media (max-width: 768px) {
-        .form-card {
-            padding: 1.5rem;
-            border-radius: 12px;
-        }
-        
-        .form-header h3 {
-            font-size: 1.3rem;
-        }
-        
-        .form-icon {
-            width: 70px;
-            height: 70px;
-            font-size: 2rem;
-        }
-        
-        .form-actions {
-            flex-direction: column;
-        }
-        
-        .btn-gradient {
-            padding: 10px 16px;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .admin-form-container {
-            padding: 1rem;
-        }
-        
-        .form-card {
-            padding: 1.25rem;
-            border-radius: 8px;
-        }
-        
-        .form-control {
-            padding: 10px 14px 10px 40px;
-            font-size: 0.9rem;
-        }
-        
-        .input-icon {
-            left: 14px;
-            font-size: 0.9rem;
-        }
-        
-        .form-header h3 {
-            font-size: 1.2rem;
-        }
-        
-        .form-header p {
-            font-size: 0.9rem;
-        }
-    }
-</style>
 {% block page_title %}添加管理员账户{% endblock %}
 
 {% block content %}
-<div class="admin-form-container">
-    <div class="form-card shadow-sm fade-in">
-        <div class="form-header">
-            <div class="form-icon">
-                <i class="fas fa-user-plus"></i>
-            </div>
-            <h3>创建新管理员账户</h3>
-            <p>请填写以下信息来添加新的管理员用户</p>
-        </div>
-        
-        <form method="POST" action="/admin/add_admin" class="admin-form" id="adminForm">
-            {{ form.hidden_tag() }}
-            
-            <div class="form-group">
-                <label class="form-label">管理员姓名</label>
-                <div class="input-group">
-                    <div class="input-icon">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    {{ form.name(class='form-control', placeholder='请输入管理员姓名', autocomplete='off') }}
-                </div>
-                {% for error in form.name.errors %}
-                    <span class="error-message">{{ error }}</span>
-                {% endfor %}
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">用户名</label>
-                <div class="input-group">
-                    <div class="input-icon">
-                        <i class="fas fa-user-circle"></i>
-                    </div>
-                    {{ form.username(class='form-control', placeholder='请输入用户名', autocomplete='off') }}
-                </div>
-                {% for error in form.username.errors %}
-                    <span class="error-message">{{ error }}</span>
-                {% endfor %}
-                <small class="form-hint">用户名只能包含字母和数字，不支持中文</small>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">密码</label>
-                <div class="input-group">
-                    <div class="input-icon">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    {{ form.password(class='form-control', placeholder='请输入密码', id='password', autocomplete='new-password') }}
-                    <button type="button" class="toggle-password" id="togglePassword">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-                {% for error in form.password.errors %}
-                    <span class="error-message">{{ error }}</span>
-                {% endfor %}
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">确认密码</label>
-                <div class="input-group">
-                    <div class="input-icon">
-                        <i class="fas fa-lock-check"></i>
-                    </div>
-                    {{ form.confirm_password(class='form-control', placeholder='请再次输入密码', id='confirmPassword', autocomplete='new-password') }}
-                    <button type="button" class="toggle-password" id="toggleConfirmPassword">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-                {% for error in form.confirm_password.errors %}
-                    <span class="error-message">{{ error }}</span>
-                {% endfor %}
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">权限级别</label>
-                <div class="input-group">
-                    <div class="input-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    {{ form.role_level(class='form-control', placeholder='请选择权限级别') }}
-                </div>
-                {% for error in form.role_level.errors %}
-                    <span class="error-message">{{ error }}</span>
-                {% endfor %}
-            </div>
+<div class="page-content">
+    <div class="pt-3 pb-2 mb-3 border-bottom d-flex justify-content-between align-items-center">
+        <h1 class="h2">添加管理员账户</h1>
+        <a href="/admin/users" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回
+        </a>
+    </div>
 
-            <div class="form-actions">
-                {{ form.submit(class='btn-gradient primary') }}
-                <a href="/admin/users" class="btn-gradient secondary">
-                    <span>返回</span>
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-            </div>
-        </form>
+    <!-- 消息提示 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <!-- 添加管理员表单 -->
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="/admin/add_admin" class="admin-form" id="adminForm">
+                {{ form.hidden_tag() }}
+                
+                <div class="mb-4">
+                    <label class="form-label">管理员姓名</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-user"></i>
+                            </span>
+                        </div>
+                        {{ form.name(class='form-control', placeholder='请输入管理员姓名', autocomplete='name') }}
+                    </div>
+                    {% for error in form.name.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">用户名</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-user-circle"></i>
+                            </span>
+                        </div>
+                        {{ form.username(class='form-control', placeholder='请输入用户名', autocomplete='username') }}
+                    </div>
+                    {% for error in form.username.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                    <small class="text-muted">用户名只能包含字母和数字，不支持中文</small>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">密码</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                        </div>
+                        {{ form.password(class='form-control', placeholder='请输入密码', id='password', autocomplete='new-password') }}
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary toggle-password" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% for error in form.password.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">确认密码</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-lock-check"></i>
+                            </span>
+                        </div>
+                        {{ form.confirm_password(class='form-control', placeholder='请再次输入密码', id='confirmPassword', autocomplete='new-password') }}
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary toggle-password" id="toggleConfirmPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% for error in form.confirm_password.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">权限级别</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-shield-alt"></i>
+                            </span>
+                        </div>
+                        {{ form.role_level(class='form-control', placeholder='请选择权限级别') }}
+                    </div>
+                    {% for error in form.role_level.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-end mt-5">
+                    {{ form.submit(class='btn btn-primary') }}
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -448,21 +161,21 @@
             // 检查密码是否匹配
             if (passwordField.value !== confirmPasswordField.value) {
                 isValid = false;
-                const errorElement = document.createElement('span');
-                errorElement.className = 'error-message';
-                errorElement.textContent = '两次输入的密码不匹配';
-                
-                const parent = confirmPasswordField.closest('.form-group');
-                const existingError = parent.querySelector('.error-message');
+                const parent = confirmPasswordField.closest('.mb-4');
+                const existingError = parent.querySelector('.text-danger');
                 if (existingError) {
-                    parent.removeChild(existingError);
+                    existingError.textContent = '两次输入的密码不匹配';
+                } else {
+                    const errorElement = document.createElement('span');
+                    errorElement.className = 'text-danger small';
+                    errorElement.textContent = '两次输入的密码不匹配';
+                    parent.appendChild(errorElement);
                 }
-                parent.appendChild(errorElement);
                 
-                // 添加抖动动画
-                confirmPasswordField.classList.add('input-error');
+                // 添加Bootstrap错误样式
+                confirmPasswordField.classList.add('is-invalid');
                 setTimeout(() => {
-                    confirmPasswordField.classList.remove('input-error');
+                    confirmPasswordField.classList.remove('is-invalid');
                 }, 500);
             }
             
@@ -475,11 +188,12 @@
         const inputs = document.querySelectorAll('.form-control');
         inputs.forEach(input => {
             input.addEventListener('input', function() {
-                const parent = this.closest('.form-group');
-                const errorElement = parent.querySelector('.error-message');
+                const parent = this.closest('.mb-4');
+                const errorElement = parent.querySelector('.text-danger');
                 if (errorElement) {
-                    parent.removeChild(errorElement);
+                    errorElement.remove();
                 }
+                this.classList.remove('is-invalid');
             });
         });
     });

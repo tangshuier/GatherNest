@@ -4,6 +4,36 @@
 {% block page_title %}管理培训资料{% endblock %}
 
 {% block content %}
+<!-- 视频播放器模态框 -->
+<div class="modal fade" id="videoPlayerModal" tabindex="-1" role="dialog" aria-labelledby="videoPlayerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="videoPlayerModalLabel">视频播放</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="video-container">
+          <video id="videoPlayer" controls preload="metadata" playsinline crossorigin="anonymous">
+            <source src="" type="video/mp4">
+            您的浏览器不支持视频播放。
+          </video>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="mr-auto">
+          <button type="button" id="rotateVideoBtn" class="btn btn-secondary mr-2">
+            <i class="fas fa-sync-alt"></i> 旋转视频
+          </button>
+        </div>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="container mt-4">
     <div class="card shadow-md p-8 mb-6 bg-white rounded">
         <h2 class="text-primary mb-4">培训资料管理</h2>
@@ -43,7 +73,17 @@
                             <tbody>
                                 {% for material in materials if material.category == category %}
                                     <tr>
-                                        <td>{{ material.title }}</td>
+                                        <td>
+                                            {% if material.file_path %}
+                                                {% if material.file_type in ['mp4', 'avi', 'mov', 'wmv'] %}
+                                            <a href="#" class="text-blue-600 hover:underline video-link" data-video-url="{{ url_for('video.serve_video', filename=material.file_path.split('\\')[-1] if '\\' in material.file_path else material.file_path.split('/')[-1]) }}">{{ material.title }}</a>
+                                            {% else %}
+                                            <a href="/{{ material.file_path }}" class="text-blue-600 hover:underline">{{ material.title }}</a>
+                                            {% endif %}
+                                            {% else %}
+                                            <span class="text-gray-500">{{ material.title }} <small>(暂未上传资料)</small></span>
+                                            {% endif %}
+                                        </td>
                                         <td>{{ material.description or '-' }}</td>
                                         <td>
                                             {% if material.file_type == 'pdf' %}
@@ -90,6 +130,168 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+    // 页面加载完成后初始化视频播放功能
+    document.addEventListener('DOMContentLoaded', function() {
+        // 视频播放模态框功能
+        var videoModal = $('#videoPlayerModal');
+        var videoPlayer = document.getElementById('videoPlayer');
+        var videoTitle = document.getElementById('videoPlayerModalLabel');
+        var rotateBtn = document.getElementById('rotateVideoBtn');
+        var rotationAngle = 0;
+        
+        // 为所有视频链接添加点击事件
+        var videoLinks = document.querySelectorAll('.video-link');
+        for (var i = 0; i < videoLinks.length; i++) {
+            var link = videoLinks[i];
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                var videoUrl = this.getAttribute('data-video-url') || this.href;
+                var videoName = this.textContent;
+                
+                // 设置视频源和标题
+                videoPlayer.src = videoUrl;
+                videoTitle.textContent = videoName;
+                
+                // 重置旋转角度和样式
+                rotationAngle = 0;
+                videoPlayer.style.transform = 'rotate(0deg)';
+                videoPlayer.style.maxWidth = '100%';
+                videoPlayer.style.maxHeight = 'calc(100vh - 300px)';
+                videoPlayer.style.width = '100%';
+                videoPlayer.style.height = 'auto';
+                videoPlayer.style.margin = '0 auto';
+                
+                // 视频加载完成后调整尺寸
+                videoPlayer.addEventListener('loadedmetadata', function() {
+                    // 根据视频宽高比调整样式
+                    const videoWidth = videoPlayer.videoWidth;
+                    const videoHeight = videoPlayer.videoHeight;
+                    
+                    if (videoWidth > videoHeight) {
+                        // 横屏视频
+                        videoPlayer.style.maxWidth = '100%';
+                        videoPlayer.style.maxHeight = 'calc(100vh - 300px)';
+                        videoPlayer.style.width = '100%';
+                        videoPlayer.style.height = 'auto';
+                    } else {
+                        // 竖屏视频
+                        videoPlayer.style.maxWidth = 'auto';
+                        videoPlayer.style.maxHeight = 'calc(100vh - 300px)';
+                        videoPlayer.style.width = 'auto';
+                        videoPlayer.style.height = '100%';
+                    }
+                });
+                
+                // 打开模态框
+                videoModal.modal('show');
+            });
+        }
+        
+        // 旋转视频功能
+        rotateBtn.addEventListener('click', function() {
+            // 每次点击旋转90度
+            rotationAngle += 90;
+            
+            // 获取视频容器
+            const videoContainer = document.querySelector('.video-container');
+            if (videoContainer) {
+                // 获取视频的原始宽高
+                const videoWidth = videoPlayer.videoWidth;
+                const videoHeight = videoPlayer.videoHeight;
+                
+                // 获取窗口和容器尺寸
+                const windowHeight = window.innerHeight;
+                const containerWidth = videoContainer.offsetWidth;
+                const containerHeight = windowHeight * 0.7;
+                
+                // 设置视频容器的高度
+                videoContainer.style.height = containerHeight + 'px';
+                
+                // 计算旋转后的宽高（90度或270度时宽高互换）
+                let rotatedWidth, rotatedHeight;
+                if (rotationAngle % 180 === 90 || rotationAngle % 180 === -90) {
+                    rotatedWidth = videoHeight;
+                    rotatedHeight = videoWidth;
+                } else {
+                    rotatedWidth = videoWidth;
+                    rotatedHeight = videoHeight;
+                }
+                
+                // 设置视频的变换原点和旋转
+                videoPlayer.style.transformOrigin = 'center center';
+                videoPlayer.style.transform = 'rotate(' + rotationAngle + 'deg)';
+                
+                // 计算合适的视频尺寸
+                let newWidth, newHeight;
+                const videoRatio = rotatedWidth / rotatedHeight;
+                
+                // 确保视频在容器内完整显示
+                if (videoRatio > 1) {
+                    // 宽屏视频
+                    newWidth = Math.min(containerWidth * 0.9, rotatedWidth);
+                    newHeight = newWidth / videoRatio;
+                } else {
+                    // 竖屏视频
+                    newHeight = Math.min(containerHeight * 0.9, rotatedHeight);
+                    newWidth = newHeight * videoRatio;
+                }
+                
+                // 设置视频尺寸
+                videoPlayer.style.width = newWidth + 'px';
+                videoPlayer.style.height = newHeight + 'px';
+                videoPlayer.style.maxWidth = 'none';
+                videoPlayer.style.maxHeight = 'none';
+                videoPlayer.style.objectFit = 'contain';
+                
+                // 确保视频居中显示
+                videoPlayer.style.display = 'block';
+                videoPlayer.style.margin = '0 auto';
+            }
+        });
+        
+        // 模态框关闭时重置视频
+        videoModal.on('hidden.bs.modal', function() {
+            videoPlayer.pause();
+            videoPlayer.src = '';
+            videoPlayer.load();
+            // 重置旋转角度和样式
+            rotationAngle = 0;
+            videoPlayer.style.transform = 'rotate(0deg)';
+            videoPlayer.style.maxWidth = '100%';
+            videoPlayer.style.maxHeight = 'calc(100vh - 300px)';
+            videoPlayer.style.width = '100%';
+            videoPlayer.style.height = 'auto';
+            videoPlayer.style.margin = '0 auto';
+        });
+        
+        // 模态框显示后确保视频容器有足够空间和视频居中
+        videoModal.on('shown.bs.modal', function() {
+            var videoContainer = document.querySelector('.video-container');
+            if (videoContainer) {
+                // 确保视频容器高度足够
+                var windowHeight = window.innerHeight;
+                var modalHeader = this.querySelector('.modal-header');
+                var modalFooter = this.querySelector('.modal-footer');
+                
+                var headerHeight = modalHeader ? modalHeader.offsetHeight : 0;
+                var footerHeight = modalFooter ? modalFooter.offsetHeight : 0;
+                
+                // 设置视频容器最大高度，留出一些边距
+                var maxHeight = windowHeight * 0.7;
+                videoContainer.style.maxHeight = maxHeight + 'px';
+                
+                // 确保视频样式正确
+                videoPlayer.style.maxWidth = '100%';
+                videoPlayer.style.maxHeight = 'calc(100vh - 300px)';
+                videoPlayer.style.width = '100%';
+                videoPlayer.style.height = 'auto';
+                videoPlayer.style.margin = '0 auto';
+            }
+        });
+    });
+</script>
 
 <style>
     .table th, .table td {
@@ -143,6 +345,80 @@
     
     .text-primary {
         margin-bottom: 2rem;
+    }
+    
+    /* 视频容器样式 */
+    .video-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #000;
+        padding: 50px 0;
+        width: 100%;
+        overflow: hidden;
+        min-height: 60vh;
+    }
+    
+    .video-container video {
+        max-width: 100%;
+        /* 调整高度计算，为控件和容器padding留出足够空间 */
+        max-height: calc(100vh - 300px);
+        width: 100%;
+        height: auto;
+        display: block;
+        /* 使用object-fit: contain确保视频完整显示 */
+        object-fit: contain;
+    }
+    
+    /* 确保视频控件能正常显示 */
+    video {
+        z-index: 10;
+    }
+    
+    /* 视频播放器模态框样式优化 */
+    #videoPlayerModal .modal-body {
+        min-height: 70vh;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    #videoPlayerModal .video-container {
+        width: 100%;
+        height: 100%;
+        min-height: 60vh;
+        padding: 50px 0;
+        align-items: center;
+        overflow: hidden;
+    }
+    
+    /* 模态框样式 */
+    .modal-xl {
+        max-width: calc(95% - var(--sidebar-width));
+        width: calc(95% - var(--sidebar-width));
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* 确保模态框在大屏幕上也不会覆盖侧边栏 */
+    @media (min-width: 992px) {
+        #videoPlayerModal .modal-dialog {
+            margin-left: calc(var(--sidebar-width) + 2.5%);
+            margin-right: 2.5%;
+        }
+    }
+    
+    /* 链接样式 */
+    .text-blue-600 {
+        color: #0066cc;
+        font-weight: 500;
+        display: inline-block;
+    }
+    
+    .text-blue-600:hover {
+        color: #0052a3;
+        text-decoration: underline;
     }
 </style>
 {% endblock %}

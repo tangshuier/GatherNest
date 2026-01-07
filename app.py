@@ -643,7 +643,7 @@ def test_boolean_fix():
 # 此处删除直接路由定义，避免与user_bp中的路由冲突
 
 # 推荐设置为局域网中计算机的固定IP地址
-FIXED_HOST = '192.168.170.178'  # 修改为您的局域网IP地址
+FIXED_HOST = '0.0.0.0'  # 监听所有网络接口
 
 def kill_process_using_port(port):
     try:

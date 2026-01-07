@@ -208,9 +208,9 @@
             </div>
           </div>
           <div class="product-action">
-            <a href="/products/{{ product.id }}" class="view-btn">
+            <button class="view-btn view-project-details" type="button" data-project-id="{{ product.id }}">
               <i class="fas fa-eye"></i>
-            </a>
+            </button>
           </div>
         </div>
         {% endfor %}
@@ -223,6 +223,44 @@
     </div>
   </div>
 </div>
+
+<script>
+    // 为眼睛按钮和图标添加点击事件监听器
+    document.addEventListener('DOMContentLoaded', function() {
+        // 为所有眼睛按钮添加点击事件监听器
+        const viewButtons = document.querySelectorAll('.view-project-details');
+        viewButtons.forEach(button => {
+            // 为按钮本身添加点击事件监听器
+            button.addEventListener('click', function(e) {
+                // 阻止事件冒泡
+                e.stopPropagation();
+                e.preventDefault();
+                
+                // 手动调用showProjectDetails函数
+                const projectId = this.getAttribute('data-project-id');
+                if (typeof window.showProjectDetails === 'function') {
+                    window.showProjectDetails(projectId);
+                }
+            });
+            
+            // 为按钮内的图标添加点击事件监听器
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.addEventListener('click', function(e) {
+                    // 阻止事件冒泡
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    // 获取父按钮的project-id
+                    const projectId = button.getAttribute('data-project-id');
+                    if (typeof window.showProjectDetails === 'function') {
+                        window.showProjectDetails(projectId);
+                    }
+                });
+            }
+        });
+    });
+</script>
 
 
 
