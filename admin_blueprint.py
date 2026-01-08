@@ -261,9 +261,7 @@ def add_admin():
             new_user = User(
                 username=username,
                 role='admin',
-                role_level=role_level,
-                created_by=current_user.id,
-                updated_by=current_user.id
+                role_level=role_level
             )
             new_user.set_password(password)
             db.session.add(new_user)
@@ -401,7 +399,6 @@ def set_admin_permission():
             user.role = 'admin'
             user.role_level = new_role_level
             user.role_detail = None  # 管理员不需要详细角色
-            user.updated_by = current_user.id
             
             # 先保存所有可能的角色名称
             person_name = None
@@ -485,7 +482,6 @@ def set_admin_permission():
                 user.role = role_detail if role_detail in ('engineer', 'customer_service') else 'engineer'
                 user.role_level = 3
                 user.role_detail = role_detail if role_detail in ('engineer', 'customer_service') else 'engineer'
-                user.updated_by = current_user.id
                 
                 # 创建对应角色信息
                 # 为name字段提供默认值，避免违反NOT NULL约束
@@ -507,7 +503,6 @@ def set_admin_permission():
                 user.role_level = new_role_level
                 if role_detail:
                     user.role_detail = role_detail
-                user.updated_by = current_user.id
                 flash(f'用户 {user.username} 权限已更新')
             else:
                 flash('无法提升用户权限')
@@ -586,7 +581,6 @@ def remove_admin():
         user.role = 'engineer'
         user.role_level = 3
         user.role_detail = 'engineer'
-        user.updated_by = current_user.id
         
         # 删除管理员信息
         db.session.delete(admin_info)

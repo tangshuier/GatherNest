@@ -946,7 +946,7 @@
             </div>
             <ul class="sidebar-nav">
                 {% if current_user.is_authenticated %}
-                {% if current_user.role == 'super_admin' %}
+                {% if current_user.role == 'super_admin' or current_user.role == 'admin' %}
                 <li><a href="/admin" class="{% if request.path == '/admin' %}active{% endif %}">
                         <i class="fas fa-tachometer-alt"></i> 管理员面板
                     </a></li>
@@ -956,18 +956,23 @@
                 <li><a href="/project_management/manage_tag_requests" class="{% if request.path.startswith('/project_management/manage_tag_requests') %}active{% endif %}">
                         <i class="fas fa-tags"></i> 标签管理
                     </a></li>
+                <li><a href="/user/project_search" class="{% if request.path == '/user/project_search' %}active{% endif %}">
+                        <i class="fas fa-search"></i> 项目搜索
+                    </a></li>
                 <li><a href="/admin/users" class="{% if request.path.startswith('/admin/users') %}active{% endif %}">
                         <i class="fas fa-users"></i> 用户管理
                     </a></li>
                 <li><a href="/admin/stats" class="{% if request.path.startswith('/admin/stats') %}active{% endif %}">
                         <i class="fas fa-chart-pie"></i> 统计分析
                     </a></li>
+                {% if current_user.role == 'super_admin' %}
                 <li><a href="/upload_video" class="{% if request.path.startswith('/upload_video') %}active{% endif %}">
                         <i class="fas fa-video"></i> 视频管理
                     </a></li>
                 <li><a href="/admin/training_materials" class="{% if request.path.startswith('/admin/training_materials') %}active{% endif %}">
                         <i class="fas fa-book"></i> 培训资料管理
                     </a></li>
+                {% endif %}
                 {% endif %}
 
                 {% if current_user.role == 'engineer' %}
@@ -977,11 +982,20 @@
                 <li><a href="/user/engineer_projects" class="{% if request.path == '/user/engineer_projects' %}active{% endif %}">
                         <i class="fas fa-box"></i> 项目管理
                     </a></li>
+                <li><a href="/user/training_materials" class="{% if request.path.startswith('/user/training_materials') %}active{% endif %}">
+                        <i class="fas fa-book"></i> 资料
+                    </a></li>
+                {% endif %}
+
+                {% if current_user.role == 'customer_service' %}
+                <li><a href="/user/customer_service_panel" class="{% if request.path == '/user/customer_service_panel' %}active{% endif %}">
+                        <i class="fas fa-home"></i> 客服面板
+                    </a></li>
                 <li><a href="/user/project_search" class="{% if request.path == '/user/project_search' %}active{% endif %}">
                         <i class="fas fa-search"></i> 项目搜索
                     </a></li>
-                <li><a href="/user/training_materials" class="{% if request.path.startswith('/user/training_materials') %}active{% endif %}">
-                        <i class="fas fa-book"></i> 资料
+                <li><a href="/user/customer_inquiries" class="{% if request.path == '/user/customer_inquiries' %}active{% endif %}">
+                        <i class="fas fa-question-circle"></i> 客户咨询
                     </a></li>
                 {% endif %}
 

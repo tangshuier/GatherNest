@@ -644,9 +644,10 @@ def project_search():
     """项目查询页面"""
     user = current_user
     
-    # 验证用户是否为客服或超级管理员
+    # 验证用户是否为客服、管理员或超级管理员
     if not (user.role == 'customer_service' or 
            (hasattr(user, 'role_detail') and getattr(user, 'role_detail', '') == 'customer_service') or 
+           user.role == 'admin' or 
            user.role == 'super_admin'):
         flash('您没有权限访问此页面')
         return redirect(url_for('user.user_panel'))

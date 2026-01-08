@@ -14,8 +14,12 @@ import sys
 # 创建Flask应用实例
 app = Flask(__name__)
 
-# 配置数据库URI，使用绝对路径
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///f:\\资料整理网站\\instance\\database.db'
+# 配置数据库URI，使用动态生成的绝对路径
+# 获取脚本所在目录的父目录（项目根目录）
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+db_path = os.path.join(project_root, 'instance', 'database.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+print(f"使用数据库路径: {db_path}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 确保instance目录存在
